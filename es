@@ -1,136 +1,103 @@
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1408117042258907196/3oTINE7iMaUWGMtvHf22XViEI9Fd3CeifOnzdiE9_3QU8BPHKalaps3ej3aq0riV9Opf"
+--// Config
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1408117042258907196/3oTINE7iMaUWGMtvHf22XViEI9Fd3CeifOnzdiE9_3QU8BPHKalaps3ej3aq0riV9Opf" -- ganti dengan webhook lo
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local workspace = game:GetService("Workspace")
 
---// Resolve UserId -> DisplayName + Level (exclude Money)
-local function resolveFinder(userId)
-    local player = Players:GetPlayerByUserId(userId)
-    if not player then return string.format("UserId: %d (offline)", userId) end
+-- Cari ItemSpots
+local map = workspace:FindFirstChild("Map")
+local merchant = map and map:FindFirstChild("TravelingMerchant")
+local itemSpots = merchant and merchant:FindFirstChild("ItemSpots")
 
-    local leaderstats = player:FindFirstChild("leaderstats")
-    local level = leaderstats and leaderstats:FindFirstChild("Level") and leaderstats.Level.Value or "N/A"
-
-    return string.format("%s | Level: %s | UserId: %d", player.DisplayName, level, userId)
+if not itemSpots then
+    warn("ItemSpots tidak ditemukan!")
+    return
 end
 
---// Format argumen
-local function formatValue(v)
-    local t = typeof(v)
-    if t == "Instance" then
-        return string.format("[Instance: %s (%s)]", v.Name, v.ClassName)
-    elseif t == "Vector3" then
-        return string.format("[Vector3: %.2f, %.2f, %.2f]", v.X, v.Y, v.Z)
-    elseif t == "CFrame" then return "[CFrame]"
-    elseif t == "Color3" then
-        return string.format("[Color3: R=%.2f G=%.2f B=%.2f]", v.R, v.G, v.B)
-    elseif t == "table" then
-        local parts = {}
-        for k, v2 in pairs(v) do
-            if k == "Finder" and typeof(v2) == "number" then
-                table.insert(parts, string.format("%s = %s", k, resolveFinder(v2)))
-            else
-                table.insert(parts, string.format("%s = %s", k, formatValue(v2)))
-            end
-        end
-        return "{ " .. table.concat(parts, ", ") .. " }"
-    elseif t == "function" then return "[Function]"
-    elseif t == "userdata" then return "[Userdata]"
-    else return tostring(v)
-    end
-end
-
-local function formatArgs(args)
-    local out = {}
-    for i, v in ipairs(args) do
-        table.insert(out, string.format("[%d] = %s", i, formatValue(v)))
-    end
-    return #out > 0 and table.concat(out, "\n") or "[No Arguments]"
-end
-
---// Kirim ke Discord
-local function sendToDiscord(sourceName, obj, args, type)
-    local colors = { RemoteEvent = 3447003, RemoteFunction = 5763719, Dynamic = 15844367 }
+-- Fungsi kirim log ke Discord
+local function sendToDiscord(title, description)
     local data = {
-        username = "Remote Logger",
+        username = "ItemSpots Logger",
         embeds = {{
-            title = string.format("[%s] %s", sourceName, obj:GetFullName()),
-            description = "```lua\n"..formatArgs(args).."\n```",
-            color = colors[type] or 0,
+            title = title,
+            description = description,
+            color = 15844367,
             timestamp = DateTime.now():ToIsoDate()
         }}
     }
     local body = HttpService:JSONEncode(data)
     local request = (http_request or request or syn.request)
     if request then
-        request({ Url = WEBHOOK_URL, Method = "POST", Headers = {["Content-Type"]="application/json"}, Body = body })
+        request({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {["Content-Type"]="application/json"},
+            Body = body
+        })
     end
 end
 
---// Blacklist (nama atau path lengkap)
-local blacklist = {
-    "TimeSyncEvent",
-    "TweenCommunication",
-    "ReplicatedStorage.Remotes.Misc.SystemMessage", -- exclude full path
-    "ReplicatedStorage.Remotes.Quests.UpdateQuestData",
-}
-
-local function isBlacklisted(obj)
-    for _, b in ipairs(blacklist) do
-        if string.find(name, b) then return true end
-        if string.find(obj.Name, b) or string.find(obj:GetFullName(), b) then
-            return true
+-- Scan ObjectValue yang refer ke ItemSpots
+local function scanObjectValues()
+    local logs = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("ObjectValue") and obj.Value == itemSpots then
+            table.insert(logs, "[ObjectValue reference] " .. obj:GetFullName())
         end
     end
-    return false
-end
-
---// Hook Remotes
-local function hookRemotes(parent, sourceName)
-    for _, obj in ipairs(parent:GetDescendants()) do
-        if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) and not isBlacklisted(obj.Name) then
-        if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) and not isBlacklisted(obj) then
-            if obj:IsA("RemoteEvent") then
-                obj.OnClientEvent:Connect(function(...)
-                    sendToDiscord(sourceName, obj, {...}, obj.ClassName)
-                end)
-            else
-                local old
-                local success, callback = pcall(function() return rawget(obj, "OnClientInvoke") end)
-                if success then old = callback end
-                obj.OnClientInvoke = function(...)
-                    sendToDiscord(sourceName, obj, {...}, obj.ClassName)
-                    if old then return old(...) end
-                    return nil
-                end
-            end
-        end
+    if #logs > 0 then
+        sendToDiscord("ObjectValue references to ItemSpots", table.concat(logs, "\n"))
     end
 end
 
--- Hook static (exclude PlayerGui)
-hookRemotes(game.ReplicatedStorage, "ReplicatedStorage")
-hookRemotes(workspace, "Workspace")
-
--- Hook dynamic
-game.DescendantAdded:Connect(function(obj)
-    if isBlacklisted(obj.Name) then return end
-    if isBlacklisted(obj) then return end
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+-- Hook RemoteEvent/RemoteFunction di sekitar TravelingMerchant
+local function hookRemotes(parent)
+    for _, obj in pairs(parent:GetDescendants()) do
         if obj:IsA("RemoteEvent") then
             obj.OnClientEvent:Connect(function(...)
-                sendToDiscord("Dynamic", obj, {...}, "Dynamic")
+                local args = {...}
+                local logs = {}
+                for i, v in ipairs(args) do
+                    if v == itemSpots then
+                        table.insert(logs, "[RemoteEvent arg] " .. obj:GetFullName() .. " argument #" .. i .. " references ItemSpots")
+                    end
+                end
+                if #logs > 0 then
+                    sendToDiscord("RemoteEvent references to ItemSpots", table.concat(logs, "\n"))
+                end
             end)
-        else
+        elseif obj:IsA("RemoteFunction") then
             local old
             local success, callback = pcall(function() return rawget(obj, "OnClientInvoke") end)
             if success then old = callback end
             obj.OnClientInvoke = function(...)
-                sendToDiscord("Dynamic", obj, {...}, "Dynamic")
+                local args = {...}
+                local logs = {}
+                for i, v in ipairs(args) do
+                    if v == itemSpots then
+                        table.insert(logs, "[RemoteFunction arg] " .. obj:GetFullName() .. " argument #" .. i .. " references ItemSpots")
+                    end
+                end
+                if #logs > 0 then
+                    sendToDiscord("RemoteFunction references to ItemSpots", table.concat(logs, "\n"))
+                end
                 if old then return old(...) end
                 return nil
             end
         end
     end
-end)
+end
+
+-- Hook dan scan hanya ketika Notification dipanggil
+local notif = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Info"):WaitForChild("Notification")
+if notif and notif:IsA("RemoteEvent") then
+    notif.OnClientEvent:Connect(function(message)
+        sendToDiscord("Notification Triggered", message)
+        scanObjectValues()
+        hookRemotes(merchant)
+    end)
+else
+    warn("RemoteEvent Notification tidak ditemukan!")
+end
