@@ -68,9 +68,6 @@ local function sendToDiscord(sourceName, obj, args, type)
     end
 end
 
---// Blacklist
-local blacklist = { "TimeSyncEvent", "TweenCommunication", "SystemMessage", "UpdateQuestData" }
-local function isBlacklisted(name)
 --// Blacklist (nama atau path lengkap)
 local blacklist = {
     "TimeSyncEvent",
