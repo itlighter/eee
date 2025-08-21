@@ -2,17 +2,19 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-print("📡 List Remote di PlayerGui:")
-
-for _, obj in ipairs(playerGui:GetDescendants()) do
+-- function buat log remote
+local function logRemote(obj)
     if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        print(obj:GetFullName() .. " [" .. obj.ClassName .. "]")
+        print("📡 Remote ditemukan di PlayerGui:", obj:GetFullName(), "[" .. obj.ClassName .. "]")
     end
 end
 
--- listener otomatis kalau ada Remote baru dimasukin ke PlayerGui
+-- scan awal
+for _, obj in ipairs(playerGui:GetDescendants()) do
+    logRemote(obj)
+end
+
+-- listener kalau ada remote baru masuk
 playerGui.DescendantAdded:Connect(function(obj)
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        print("⚡ Remote baru ditemukan di PlayerGui:", obj:GetFullName(), "[" .. obj.ClassName .. "]")
-    end
+    logRemote(obj)
 end)
