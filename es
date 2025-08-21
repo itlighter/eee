@@ -1,12 +1,18 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
--- ambil semua Remote di folder Remotes
-local remotesFolder = ReplicatedStorage:WaitForChild("Remotes")
+print("📡 List Remote di PlayerGui:")
 
-print("📡 List Remote di ReplicatedStorage.Remotes:")
-
-for _, obj in ipairs(remotesFolder:GetDescendants()) do
+for _, obj in ipairs(playerGui:GetDescendants()) do
     if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
         print(obj:GetFullName() .. " [" .. obj.ClassName .. "]")
     end
 end
+
+-- listener otomatis kalau ada Remote baru dimasukin ke PlayerGui
+playerGui.DescendantAdded:Connect(function(obj)
+    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+        print("⚡ Remote baru ditemukan di PlayerGui:", obj:GetFullName(), "[" .. obj.ClassName .. "]")
+    end
+end)
