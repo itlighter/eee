@@ -4,18 +4,15 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
---// Resolve UserId -> Username
+--// Resolve UserId -> DisplayName + Level (exclude Money)
 local function resolveFinder(userId)
     local player = Players:GetPlayerByUserId(userId)
-    if player then return string.format("%s (UserId: %d)", player.Name, userId) end
-    local success, result = pcall(function()
-        local url = "https://users.roblox.com/v1/users/"..userId
-        local response = game:HttpGet(url)
-        local data = HttpService:JSONDecode(response)
-        return data.name
-    end)
-    if success and result then return string.format("%s (UserId: %d)", result, userId) end
-    return string.format("UserId: %d", userId)
+    if not player then return string.format("UserId: %d (offline)", userId) end
+
+    local leaderstats = player:FindFirstChild("leaderstats")
+    local level = leaderstats and leaderstats:FindFirstChild("Level") and leaderstats.Level.Value or "N/A"
+
+    return string.format("%s | Level: %s | UserId: %d", player.DisplayName, level, userId)
 end
 
 --// Format argumen
@@ -110,7 +107,6 @@ hookRemotes(workspace, "Workspace")
 game.DescendantAdded:Connect(function(obj)
     if isBlacklisted(obj.Name) then return end
     if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        local typeName = obj.ClassName
         if obj:IsA("RemoteEvent") then
             obj.OnClientEvent:Connect(function(...)
                 sendToDiscord("Dynamic", obj, {...}, "Dynamic")
