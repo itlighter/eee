@@ -68,11 +68,18 @@ local function sendToDiscord(sourceName, obj, args, type)
     end
 end
 
---// Blacklist
-local blacklist = { "TimeSyncEvent", "TweenCommunication", "SystemMessage", "UpdateQuestData" }
-local function isBlacklisted(name)
+--// Blacklist (nama atau path lengkap)
+local blacklist = {
+    "TimeSyncEvent",
+    "TweenCommunication",
+    "ReplicatedStorage.Remotes.Misc.SystemMessage", -- exclude full path
+}
+
+local function isBlacklisted(obj)
     for _, b in ipairs(blacklist) do
-        if string.find(name, b) then return true end
+        if string.find(obj.Name, b) or string.find(obj:GetFullName(), b) then
+            return true
+        end
     end
     return false
 end
@@ -80,7 +87,7 @@ end
 --// Hook Remotes
 local function hookRemotes(parent, sourceName)
     for _, obj in ipairs(parent:GetDescendants()) do
-        if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) and not isBlacklisted(obj.Name) then
+        if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) and not isBlacklisted(obj) then
             if obj:IsA("RemoteEvent") then
                 obj.OnClientEvent:Connect(function(...)
                     sendToDiscord(sourceName, obj, {...}, obj.ClassName)
@@ -105,7 +112,7 @@ hookRemotes(workspace, "Workspace")
 
 -- Hook dynamic
 game.DescendantAdded:Connect(function(obj)
-    if isBlacklisted(obj.Name) then return end
+    if isBlacklisted(obj) then return end
     if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
         if obj:IsA("RemoteEvent") then
             obj.OnClientEvent:Connect(function(...)
