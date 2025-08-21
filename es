@@ -76,7 +76,6 @@ local blacklist = {
     "TimeSyncEvent",
     "TweenCommunication",
     "ReplicatedStorage.Remotes.Misc.SystemMessage", -- exclude full path
-    "ReplicatedStorage.Remotes.Info.UpdateCollection",
     "ReplicatedStorage.Remotes.Quests.UpdateQuestData",
 }
 
