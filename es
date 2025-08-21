@@ -69,7 +69,7 @@ local function sendToDiscord(sourceName, obj, args, type)
 end
 
 --// Blacklist
-local blacklist = { "TimeSyncEvent", "TweenCommunication" }
+local blacklist = { "TimeSyncEvent", "TweenCommunication", "SystemMessage", "UpdateQuestData" }
 local function isBlacklisted(name)
     for _, b in ipairs(blacklist) do
         if string.find(name, b) then return true end
