@@ -1,20 +1,21 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- function buat log remote
-local function logRemote(obj)
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        print("📡 Remote ditemukan di PlayerGui:", obj:GetFullName(), "[" .. obj.ClassName .. "]")
+local function hookRemote(remote)
+    if remote:IsA("RemoteEvent") then
+        remote.OnClientEvent:Connect(function(...)
+            print("⚡ Event:", remote:GetFullName())
+            print("Args:", ...)
+        end)
+    elseif remote:IsA("RemoteFunction") then
+        remote.OnClientInvoke = function(...)
+            print("⚡ Function:", remote:GetFullName())
+            print("Args:", ...)
+        end
     end
 end
 
--- scan awal
-for _, obj in ipairs(playerGui:GetDescendants()) do
-    logRemote(obj)
+for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+        hookRemote(obj)
+    end
 end
-
--- listener kalau ada remote baru masuk
-playerGui.DescendantAdded:Connect(function(obj)
-    logRemote(obj)
-end)
