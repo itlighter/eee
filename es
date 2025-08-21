@@ -1,40 +1,52 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local blacklist = {"TimeSyncEvent"}
 
--- daftar Remote yang mau di-ignore
-local blacklist = {
-    "TimeSyncEvent",
-}
-
--- fungsi cek blacklist
-local function isBlacklisted(remote)
+-- cek blacklist
+local function isBlacklisted(obj)
     for _, v in ipairs(blacklist) do
-        if string.find(remote.Name, v) then
+        if string.find(obj.Name, v) then
             return true
         end
     end
     return false
 end
 
--- fungsi hook Remote
-local function hookRemote(remote)
-    if isBlacklisted(remote) then return end
-    
-    if remote:IsA("RemoteEvent") then
-        remote.OnClientEvent:Connect(function(...)
-            print("⚡ Event:", remote:GetFullName())
-            print("Args:", ...)
+-- hook Remote
+local function hookRemote(obj)
+    if not (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) then return end
+    if isBlacklisted(obj) then return end
+
+    if obj:IsA("RemoteEvent") then
+        obj.OnClientEvent:Connect(function(...)
+            print("⚡ RemoteEvent fired:", obj:GetFullName())
+            for i, v in ipairs({...}) do
+                print("   Arg["..i.."] =", v)
+            end
         end)
-    elseif remote:IsA("RemoteFunction") then
-        remote.OnClientInvoke = function(...)
-            print("⚡ Function:", remote:GetFullName())
-            print("Args:", ...)
+    elseif obj:IsA("RemoteFunction") then
+        obj.OnClientInvoke = function(...)
+            print("⚡ RemoteFunction invoked:", obj:GetFullName())
+            for i, v in ipairs({...}) do
+                print("   Arg["..i.."] =", v)
+            end
         end
     end
 end
 
--- pasang hook ke semua Remote di ReplicatedStorage
-for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+-- services penting buat scan
+local services = {
+    game:GetService("ReplicatedStorage"),
+    game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),
+    game:GetService("Workspace"),
+}
+
+-- scan awal
+for _, service in ipairs(services) do
+    for _, obj in ipairs(service:GetDescendants()) do
         hookRemote(obj)
     end
+
+    -- listener buat remote baru
+    service.DescendantAdded:Connect(function(obj)
+        hookRemote(obj)
+    end)
 end
