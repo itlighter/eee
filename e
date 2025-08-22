@@ -1,5 +1,5 @@
 --// Config
-local WEBHOOK_URL = "https://discord.com/api/webhooks/XXXXXXXX/XXXXXXXX" -- ganti webhook
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q" -- ganti webhook
 
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
