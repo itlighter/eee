@@ -4,13 +4,7 @@ local MAX_DISCORD_MSG = 1800 -- jaga-jaga di bawah 2000
 
 --// Services
 local HttpService = game:GetService("HttpService")
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- daftar kata kunci
-local keywords = {"merchant", "traveling", "wandering", "trader"}
 -- Kumpulan service “umum” + nanti ditambah semua anak game:GetChildren()
 local PREFERRED_SERVICES = {
     "Workspace",
@@ -31,7 +25,6 @@ local PREFERRED_SERVICES = {
     "RunService",
 }
 
--- fungsi untuk cek apakah nama mengandung keyword
 -- Keywords (lowercase semua)
 local keywords = {
     "merchant","traveling","wandering","trader",
@@ -40,12 +33,6 @@ local keywords = {
 
 -- util: cek ada keyword (substring, case-insensitive)
 local function hasKeyword(name)
-	for _, word in ipairs(keywords) do
-		if string.find(string.lower(name), word) then
-			return true
-		end
-	end
-	return false
     local lower = string.lower(name)
     for _, w in ipairs(keywords) do
         -- plain=true supaya bukan pattern; tetap substring match (biar gak “keskip”)
@@ -56,28 +43,12 @@ local function hasKeyword(name)
     return false
 end
 
--- fungsi untuk ambil semua descendant yang cocok
-local function getMatchingDescendants(parent)
-	local results = {}
-	for _, obj in ipairs(parent:GetDescendants()) do
-		if hasKeyword(obj.Name) then
-			table.insert(results, obj:GetFullName())
-		end
-	end
-	return results
 -- kumpulkan services yang benar-benar ada & bisa diakses
 local serviceSet = {}
 local function addServiceByName(svcName)
     local ok, svc = pcall(function() return game:GetService(svcName) end)
     if ok and svc then serviceSet[svc] = true end
 end
-
--- kumpulkan semua hasil
-local matches = {}
-for _, service in ipairs({Workspace, ReplicatedStorage, PlayerGui}) do
-	for _, objName in ipairs(getMatchingDescendants(service)) do
-		table.insert(matches, objName)
-	end
 for _, name in ipairs(PREFERRED_SERVICES) do
     addServiceByName(name)
 end
@@ -86,10 +57,6 @@ for _, child in ipairs(game:GetChildren()) do
     serviceSet[child] = true
 end
 
--- print hasil ke output
-print("=== Ditemukan Object ===")
-for _, name in ipairs(matches) do
-	print(name)
 -- Scan
 local results = {}
 for svc in pairs(serviceSet) do
@@ -106,10 +73,6 @@ for svc in pairs(serviceSet) do
     end
 end
 
--- siapkan pesan buat discord
-local content
-if #matches > 0 then
-	content = "=== Ditemukan Object ===\n" .. table.concat(matches, "\n")
 -- Sort biar rapi
 table.sort(results, function(a,b) return a < b end)
 
@@ -118,15 +81,11 @@ print("=== Hasil Pencarian (descendants, semua service yang terlihat) ===")
 if #results == 0 then
     print("Tidak ada object yang cocok.")
 else
-	content = "Tidak ada object yang ditemukan."
     for _, line in ipairs(results) do
         print(line)
     end
 end
 
--- kirim ke discord pakai exploit request
-local data = {content = content}
-local body = HttpService:JSONEncode(data)
 -- Kirim ke Discord (dibagi batch agar tidak melebihi limit)
 local request = (http_request or request or syn.request)
 local function sendDiscord(text)
@@ -143,18 +102,9 @@ local function sendDiscord(text)
     })
 end
 
-if request then
-	request({
-		Url = WEBHOOK_URL,
-		Method = "POST",
-		Headers = {["Content-Type"] = "application/json"},
-		Body = body
-	})
-	print("✅ Berhasil dikirim ke Discord")
 if #results == 0 then
     sendDiscord("Tidak ada object yang cocok.")
 else
-	warn("❌ Tidak ada fungsi request yang tersedia")
     local header = "=== Hasil Pencarian ===\n" ..
                    "(keywords: merchant, traveling, wandering, trader, quake, blitz, backpack, instability, enchant, book)\n"
     local chunk = header
