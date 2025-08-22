@@ -28,7 +28,7 @@ local PREFERRED_SERVICES = {
 -- Keywords (lowercase semua)
 local keywords = {
     "merchant","traveling","wandering","trader",
-    "quake","blitz","backpack","instability","enchant","book"
+    "quake","blitz","backpack","instability","enchant"
 }
 
 -- util: cek ada keyword (substring, case-insensitive)
