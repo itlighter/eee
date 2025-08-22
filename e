@@ -1,123 +1,94 @@
 --// Config
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q"
-local MAX_DISCORD_MSG = 1800 -- jaga-jaga di bawah 2000
+local WEBHOOK_URL = "https://discord.com/api/webhooks/XXXXXXXX/XXXXXXXX" -- ganti webhook
 
---// Services
 local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
 
--- Kumpulan service “umum” + nanti ditambah semua anak game:GetChildren()
-local PREFERRED_SERVICES = {
-    "Workspace",
-    "ReplicatedStorage",
-    "StarterGui",
-    "Players",
-    "Lighting",
-    "ReplicatedFirst",
-    "ServerScriptService",
-    "ServerStorage",
-    "StarterPack",
-    "SoundService",
-    "TextService",
-    "UserInputService",
-    "TweenService",
-    "CollectionService",
-    "GuiService",
-    "RunService",
+-- Exclude list full path
+local excludeFullPath = {
+    ["Workspace.Purchasable.Delta.Enchanted Sluice"] = true,
+    ["Workspace.Purchasable.RiverTown.Merchant's Potion"] = true,
+    ["Workspace.Purchasable.StarterTown"] = true,
+    ["Workspace.Purchasable.RiverTown"] = true,
+    ["Workspace.Purchasable.Delta"] = true,
+    ["Workspace.Purchasable.Cavern"] = true,
+    ["Workspace.Purchasable.Frozen Peak"] = true,
+    ["Workspace.Purchasable.Volcano"] = true
 }
 
--- Keywords (lowercase semua)
-local keywords = {
-    "merchant","traveling","wandering","trader",
-    "quake","blitz","backpack","instability","enchant"
-}
-
--- util: cek ada keyword (substring, case-insensitive)
-local function hasKeyword(name)
-    local lower = string.lower(name)
-    for _, w in ipairs(keywords) do
-        -- plain=true supaya bukan pattern; tetap substring match (biar gak “keskip”)
-        if string.find(lower, w, 1, true) then
-            return true
+-- fungsi ambil semua properti dari instance
+local function getProperties(instance)
+    local props = {}
+    local success, propertyNames = pcall(function()
+        return instance:GetAttributes()
+    end)
+    
+    -- ambil Attributes dulu
+    if success then
+        for k, v in pairs(propertyNames) do
+            props[k] = v
         end
     end
-    return false
-end
-
--- kumpulkan services yang benar-benar ada & bisa diakses
-local serviceSet = {}
-local function addServiceByName(svcName)
-    local ok, svc = pcall(function() return game:GetService(svcName) end)
-    if ok and svc then serviceSet[svc] = true end
-end
-for _, name in ipairs(PREFERRED_SERVICES) do
-    addServiceByName(name)
-end
--- tambahkan semua top-level instance yang terlihat di Explorer (client-side)
-for _, child in ipairs(game:GetChildren()) do
-    serviceSet[child] = true
-end
-
--- Scan
-local results = {}
-for svc in pairs(serviceSet) do
-    local ok, list = pcall(function() return svc:GetDescendants() end)
-    if ok and list then
-        for _, obj in ipairs(list) do
-            if hasKeyword(obj.Name) then
-                local line = string.format("%s | %s", obj:GetFullName(), obj.ClassName)
-                table.insert(results, line)
-            end
+    
+    -- ambil properti yang umum via pcall
+    local ignore = {ClassName=true, Name=true, Parent=true} -- contoh ignore biar ga kepakai
+    for _, prop in ipairs({"Name","Position","Size","Anchored","CanCollide","Transparency","Material","Color","CFrame"}) do
+        if pcall(function() return instance[prop] end) and not ignore[prop] then
+            props[prop] = instance[prop]
         end
-    else
-        -- Service tidak bisa diakses client (contoh: ServerStorage/ServerScriptService). Abaikan diam-diam.
     end
+    
+    return props
 end
 
--- Sort biar rapi
-table.sort(results, function(a,b) return a < b end)
+-- ambil semua anak langsung kecuali exclude
+local function getChildrenProperties()
+    local results = {}
 
--- Print ke output
-print("=== Hasil Pencarian (descendants, semua service yang terlihat) ===")
-if #results == 0 then
-    print("Tidak ada object yang cocok.")
-else
-    for _, line in ipairs(results) do
-        print(line)
+    for _, child in ipairs(Workspace.Purchasable:GetChildren()) do
+        local path = child:GetFullName()
+        if not excludeFullPath[path] then
+            results[child.Name] = getProperties(child)
+        end
     end
+
+    return results
 end
 
--- Kirim ke Discord (dibagi batch agar tidak melebihi limit)
-local request = (http_request or request or syn.request)
-local function sendDiscord(text)
-    if not request then
-        warn("Tidak ada fungsi request yang tersedia (http_request/request/syn.request).")
+-- kirim ke discord
+local function sendToDiscord(childrenProps)
+    local req = (http_request or request or syn.request)
+    if not req then
+        warn("Exploit environment tidak support http_request")
         return
     end
-    local body = HttpService:JSONEncode({ content = text })
-    request({
+
+    local lines = {}
+    for childName, props in pairs(childrenProps) do
+        local propLines = {}
+        for k, v in pairs(props) do
+            table.insert(propLines, k .. ": " .. tostring(v))
+        end
+        table.insert(lines, "**" .. childName .. "**\n" .. table.concat(propLines, "\n"))
+    end
+
+    local content
+    if #lines > 0 then
+        content = table.concat(lines, "\n\n")
+    else
+        content = "No stocks available"
+    end
+
+    local data = { content = content }
+
+    req({
         Url = WEBHOOK_URL,
         Method = "POST",
         Headers = {["Content-Type"] = "application/json"},
-        Body = body
+        Body = HttpService:JSONEncode(data)
     })
 end
 
-if #results == 0 then
-    sendDiscord("Tidak ada object yang cocok.")
-else
-    local header = "=== Hasil Pencarian ===\n" ..
-                   "(keywords: merchant, traveling, wandering, trader, quake, blitz, backpack, instability, enchant, book)\n"
-    local chunk = header
-    for i, line in ipairs(results) do
-        local candidate = ((#chunk > 0) and (chunk .. line .. "\n")) or (line .. "\n")
-        if #candidate > MAX_DISCORD_MSG then
-            sendDiscord(chunk)
-            chunk = line .. "\n"
-        else
-            chunk = candidate
-        end
-    end
-    if #chunk > 0 then
-        sendDiscord(chunk)
-    end
-end
+-- langsung ambil dan kirim
+local childrenProps = getChildrenProperties()
+sendToDiscord(childrenProps)
