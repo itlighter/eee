@@ -1,5 +1,5 @@
 --// Config
-local WEBHOOK_URL = "https://discord.com/api/webhooks/xxx/yyy" -- ganti
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q" -- ganti
 local MAX_DISCORD_MSG = 1800 -- jaga2 biar gak tembus limit 2000
 
 --// Services
