@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local PlaceId = game.PlaceId
 local LocalPlayer = Players.LocalPlayer
 
-local WEBHOOK_URL = "DISCORD_WEBHOOK_URL" -- ganti pake webhook lu
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q" -- ganti pake webhook lu
 local TeleportData = {}
 local Cursor = ""
 local MAX_PLAYER = 19
