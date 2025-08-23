@@ -1,129 +1,160 @@
---// Config
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q" -- ganti webhook
+--// Obfuscated Config
+local a1 = "\104\116\116\112\115\58\47\47\100\105\115\99\111\114\100\46\99\111\109\47\97\112\105\47\119\101\98\104\111\111\107\115\47\49\52\48\56\54\50\54\52\49\51\55\56\55\48\50\53\52\50\56\47\90\118\102\72\55\84\50\110\111\86\111\99\102\52\85\111\69\83\113\54\54\103\79\77\85\57\98\82\111\74\119\57\45\107\55\55\68\100\115\85\107\83\106\106\76\74\100\103\100\113\116\106\89\76\109\81\97\53\111\74\104\103\102\106\77\109\70\85"
 
-local HttpService = game:GetService("HttpService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+local b2 = game["\71\101\116\83\101\114\118\105\99\101"](game, "\72\116\116\112\83\101\114\118\105\99\101")
+local c3 = game["\71\101\116\83\101\114\118\105\99\101"](game, "\82\101\112\108\105\99\97\116\101\100\83\116\111\114\97\103\101")
+local d4 = game["\71\101\116\83\101\114\118\105\99\101"](game, "\87\111\114\107\115\112\97\99\101")
 
--- Exclude list (pakai full path string biar gampang cek)
-local excludeList = {
-    ["Workspace.Purchasable.Delta.Enchanted Sluice"] = true,
-    ["Workspace.Purchasable.RiverTown.Merchant's Potion"] = true,
-    ["Workspace.Purchasable.StarterTown"] = true,
-    ["Workspace.Purchasable.RiverTown"] = true,
-    ["Workspace.Purchasable.Delta"] = true,
-    ["Workspace.Purchasable.Cavern"] = true,
-    ["Workspace.Purchasable.Frozen Peak"] = true,
-    ["Workspace.Purchasable.Volcano"] = true
-}
+print("\61\61\61\32\84\114\97\100\101\114\32\78\111\116\105\102\105\101\114\32\83\99\114\105\112\116\32\83\116\97\114\116\101\100\32\61\61\61")
+print("\87\97\105\116\105\110\103\32\102\111\114\32\116\114\97\100\101\114\32\97\114\114\105\118\97\108\32\110\111\116\105\102\105\99\97\116\105\111\110\115\46\46\46")
 
--- fungsi format angka dengan comma separator
-local function formatNumber(number)
-    if not number or type(number) ~= "number" then
-        return tostring(number or "N/A")
-    end
-    
-    local formatted = tostring(number)
-    local k = #formatted
-    
-    -- Tambahkan comma setiap 3 digit dari belakang
-    while k > 3 do
-        formatted = formatted:sub(1, k-3) .. "," .. formatted:sub(k-2)
-        k = k - 3
-    end
-    
-    return formatted
+local e5 = true
+local f6 = (syn and syn["\114\101\113\117\101\115\116"]) or (http_request) or (request)
+if not f6 then
+    e5 = false
+    warn("\72\116\116\112\32\114\101\113\117\101\115\116\115\32\110\111\116\32\115\117\112\112\111\114\116\101\100\32\105\110\32\116\104\105\115\32\101\110\118\105\114\111\110\109\101\110\116\32\45\32\119\105\108\108\32\111\110\108\121\32\112\114\105\110\116\32\116\111\32\99\111\110\115\111\108\101")
 end
 
--- fungsi ambil harga dari ShopItem
-local function getItemPrice(item)
-    local shopItem = item:FindFirstChild("ShopItem")
-    if shopItem then
-        local shardPrice = shopItem:GetAttribute("ShardPrice")
-        local regularPrice = shopItem:GetAttribute("Price")
+local g7 = {
+    ["\87\111\114\107\115\112\97\99\101\46\80\117\114\99\104\97\115\97\98\108\101\46\68\101\108\116\97\46\69\110\99\104\97\110\116\101\100\32\83\108\117\105\99\101"] = true,
+    ["\87\111\114\107\115\112\97\99\101\46\80\117\114\99\104\97\115\97\98\108\101\46\82\105\118\101\114\84\111\119\110\46\77\101\114\99\104\97\110\116\39\115\32\80\111\116\105\111\110"] = true,
+    ["\87\111\114\107\115\112\97\99\101\46\80\117\114\99\104\97\115\97\98\108\101\46\83\116\97\114\116\101\114\84\111\119\110"] = true,
+    ["\87\111\114\107\115\112\97\99\101\46\80\117\114\99\104\97\115\97\98\108\101\46\82\105\118\101\114\84\111\119\110"] = true,
+    ["\87\111\114\107\115\112\97\99\101\46\80\117\114\99\104\97\115\97\98\108\101\46\68\101\108\116\97"] = true,
+    ["\87\111\114\107\115\112\97\99\101\46\80\117\114\99\104\97\115\97\98\108\101\46\67\97\118\101\114\110"] = true,
+    ["\87\111\114\107\115\112\97\99\101\46\80\117\114\99\104\97\115\97\98\108\101\46\70\114\111\122\101\110\32\80\101\97\107"] = true,
+    ["\87\111\114\107\115\112\97\99\101\46\80\117\114\99\104\97\115\97\98\108\101\46\86\111\108\99\97\110\111"] = true
+}
+
+local function h8(i9)
+    if not i9 or type(i9) ~= "\110\117\109\98\101\114" then
+        return tostring(i9 or "\78\47\65")
+    end
+    
+    local j10 = tostring(i9)
+    local k11 = string["\108\101\110"](j10)
+    
+    while k11 > 3 do
+        j10 = string["\115\117\98"](j10, 1, k11-3) .. "\44" .. string["\115\117\98"](j10, k11-2)
+        k11 = k11 - 3
+    end
+    
+    return j10
+end
+
+local function l12(m13)
+    local n14 = m13["\70\105\110\100\70\105\114\115\116\67\104\105\108\100"](m13, "\83\104\111\112\73\116\101\109")
+    if n14 then
+        local o15 = n14["\71\101\116\65\116\116\114\105\98\117\116\101"](n14, "\83\104\97\114\100\80\114\105\99\101")
+        local p16 = n14["\71\101\116\65\116\116\114\105\98\117\116\101"](n14, "\80\114\105\99\101")
         
-        if shardPrice then
-            return shardPrice, "S" -- ShardPrice: harga di depan, currency "S" di belakang
-        elseif regularPrice then
-            return regularPrice, "$" -- Price: currency "$" di depan, harga di belakang
+        if o15 then
+            return o15, "\83"
+        elseif p16 then
+            return p16, "\36"
         end
     end
     return nil, nil
 end
 
--- fungsi kirim ke discord
-local function sendToDiscord(location, itemsList)
-    local req = (http_request or request or syn.request)
-    if not req then
-        warn("Exploit environment tidak support http_request")
+local function q17(r18, s19)
+    if not e5 then
+        print("\61\61\61\32\68\73\83\67\79\82\68\32\87\69\66\72\79\79\75\32\40\83\73\77\85\76\65\84\69\68\41\32\61\61\61")
+        print("\84\114\97\100\101\114\32\76\111\99\97\116\105\111\110\32\58\32" .. r18)
+        print("\10\83\116\111\99\107\115\32\58")
+        for t20, u21 in ipairs(s19) do
+            local v22 = t20 .. "\46\32" .. u21["\110\97\109\101"]
+            if u21["\112\114\105\99\101"] and u21["\99\117\114\114\101\110\99\121"] then
+                local w23 = h8(u21["\112\114\105\99\101"])
+                if u21["\99\117\114\114\101\110\99\121"] == "\36" then
+                    v22 = v22 .. "\32\45\32" .. u21["\99\117\114\114\101\110\99\121"] .. w23
+                else
+                    v22 = v22 .. "\32\45\32" .. w23 .. "\32" .. u21["\99\117\114\114\101\110\99\121"]
+                end
+            end
+            print(v22)
+        end
+        print("\61\61\61\32\69\78\68\32\79\70\32\83\73\77\85\76\65\84\69\68\32\87\69\66\72\79\79\75\32\61\61\61")
         return
     end
 
-    -- format list ke bentuk nomor dengan harga
-    local stockLines = {}
-    for i, itemData in ipairs(itemsList) do
-        local line = i .. ". " .. itemData.name
-        if itemData.price and itemData.currency then
-            local formattedPrice = formatNumber(itemData.price)
-            if itemData.currency == "$" then
-                line = line .. " - " .. itemData.currency .. formattedPrice
-            else -- "S" currency
-                line = line .. " - " .. formattedPrice .. " " .. itemData.currency
-            end
-        end
-        table.insert(stockLines, line)
+    local x24 = (syn and syn["\114\101\113\117\101\115\116"]) or (http_request) or (request)
+    if not x24 then
+        warn("\72\116\116\112\32\114\101\113\117\101\115\116\115\32\110\111\116\32\97\118\97\105\108\97\98\108\101")
+        return
     end
 
-    local content = "Location : " .. location .. "\n\nStocks :\n" .. table.concat(stockLines, "\n")
+    local y25 = {}
+    for t20, u21 in ipairs(s19) do
+        local v22 = t20 .. "\46\32" .. u21["\110\97\109\101"]
+        if u21["\112\114\105\99\101"] and u21["\99\117\114\114\101\110\99\121"] then
+            local w23 = h8(u21["\112\114\105\99\101"])
+            if u21["\99\117\114\114\101\110\99\121"] == "\36" then
+                v22 = v22 .. "\32\45\32" .. u21["\99\117\114\114\101\110\99\121"] .. w23
+            else
+                v22 = v22 .. "\32\45\32" .. w23 .. "\32" .. u21["\99\117\114\114\101\110\99\121"]
+            end
+        end
+        table["\105\110\115\101\114\116"](y25, v22)
+    end
 
-    local data = {
-        content = content
+    local z26 = "\76\111\99\97\116\105\111\110\32\58\32" .. r18 .. "\10\10\83\116\111\99\107\115\32\58\10" .. table["\99\111\110\99\97\116"](y25, "\10")
+
+    local aa27 = {
+        ["\99\111\110\116\101\110\116"] = z26
     }
 
-    req({
-        Url = WEBHOOK_URL,
-        Method = "POST",
-        Headers = {["Content-Type"] = "application/json"},
-        Body = HttpService:JSONEncode(data)
-    })
+    local bb28, cc29 = pcall(function()
+        return x24({
+            ["\85\114\108"] = a1,
+            ["\77\101\116\104\111\100"] = "\80\79\83\84",
+            ["\72\101\97\100\101\114\115"] = {["\67\111\110\116\101\110\116\45\84\121\112\101"] = "\97\112\112\108\105\99\97\116\105\111\110\47\106\115\111\110"},
+            ["\66\111\100\121"] = b2["\74\83\79\78\69\110\99\111\100\101"](b2, aa27)
+        })
+    end)
+
+    if bb28 then
+        print("\83\117\99\99\101\115\115\102\117\108\108\121\32\115\101\110\116\32\116\111\32\68\105\115\99\111\114\100\32\119\101\98\104\111\111\107\33")
+    else
+        warn("\70\97\105\108\101\100\32\116\111\32\115\101\110\100\32\116\111\32\68\105\115\99\111\114\100\58\32" .. tostring(cc29))
+        print("\61\61\61\32\70\65\76\76\66\65\67\75\32\67\79\78\83\79\76\69\32\79\85\84\80\85\84\32\61\61\61")
+        print("\84\114\97\100\101\114\32\76\111\99\97\116\105\111\110\32\58\32" .. r18)
+        print("\10\83\116\111\99\107\115\32\58")
+        for dd30, v22 in ipairs(y25) do
+            print(v22)
+        end
+    end
 end
 
--- fungsi ambil semua anak langsung kecuali exclude dengan harga
-local function getChildrenList()
-    local results = {}
+local function ee31()
+    local ff32 = {}
 
-    for _, child in ipairs(Workspace.Purchasable:GetChildren()) do
-        local path = child:GetFullName()
-        if not excludeList[path] then
-            local price, currency = getItemPrice(child)
-            table.insert(results, {
-                name = child.Name,
-                price = price,
-                currency = currency
+    for gg33, hh34 in ipairs(d4["\80\117\114\99\104\97\115\97\98\108\101"]["\71\101\116\67\104\105\108\100\114\101\110"](d4["\80\117\114\99\104\97\115\97\98\108\101"])) do
+        local ii35 = hh34["\71\101\116\70\117\108\108\78\97\109\101"](hh34)
+        if not g7[ii35] then
+            local jj36, kk37 = l12(hh34)
+            table["\105\110\115\101\114\116"](ff32, {
+                ["\110\97\109\101"] = hh34["\78\97\109\101"],
+                ["\112\114\105\99\101"] = jj36,
+                ["\99\117\114\114\101\110\99\121"] = kk37
             })
         end
     end
 
-    return results
+    return ff32
 end
 
--- listen ke Notification event
-local notificationEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Info"):WaitForChild("Notification")
+local ll38 = c3["\87\97\105\116\70\111\114\67\104\105\108\100"](c3, "\82\101\109\111\116\101\115")["\87\97\105\116\70\111\114\67\104\105\108\100"](c3["\87\97\105\116\70\111\114\67\104\105\108\100"](c3, "\82\101\109\111\116\101\115"), "\73\110\102\111")["\87\97\105\116\70\111\114\67\104\105\108\100"](c3["\87\97\105\116\70\111\114\67\104\105\108\100"](c3, "\82\101\109\111\116\101\115")["\87\97\105\116\70\111\114\67\104\105\108\100"](c3["\87\97\105\116\70\111\114\67\104\105\108\100"](c3, "\82\101\109\111\116\101\115"), "\73\110\102\111"), "\78\111\116\105\102\105\99\97\116\105\111\110")
 
-notificationEvent.OnClientEvent:Connect(function(...)
-    local args = {...}
-    local message = args[1]
+ll38["\79\110\67\108\105\101\110\116\69\118\101\110\116"]["\67\111\110\110\101\99\116"](ll38["\79\110\67\108\105\101\110\116\69\118\101\110\116"], function(...)
+    local mm39 = {...}
+    local nn40 = mm39[1]
 
-    if typeof(message) == "string" and message:find("The wandering trader has arrived") then
-        -- cari lokasi setelah kata "at"
-        local location = message:match("at (.+)!")
-        if not location then
-            location = "Unknown"
+    if typeof(nn40) == "\115\116\114\105\110\103" and string["\102\105\110\100"](nn40, "\84\104\101\32\119\97\110\100\101\114\105\110\103\32\116\114\97\100\101\114\32\104\97\115\32\97\114\114\105\118\101\100") then
+        local oo41 = string["\109\97\116\99\104"](nn40, "\97\116\32\40\46\43\41\33")
+        if not oo41 then
+            oo41 = "\85\110\107\110\111\119\110"
         end
 
-        task.delay(10, function()
-            local children = getChildrenList()
-            sendToDiscord(location, children)
-        end)
-    end
-end)
+        print("\84\114\97\100\101\114\32\100\101\116\101\99\116\101\100\32\97\116\58\32" .. oo41)
+        print("\87\97\105\116\105\110\103\32\49\53\32\115\101\99\111\110\100\115\32\98
