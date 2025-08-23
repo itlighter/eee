@@ -74,7 +74,7 @@ local function sendToDiscord(location, itemsList)
         table.insert(stockLines, line)
     end
 
-    local content = "Trader Location : " .. location .. "\n\nStocks :\n" .. table.concat(stockLines, "\n")
+    local content = "Location : " .. location .. "\n\nStocks :\n" .. table.concat(stockLines, "\n")
 
     local data = {
         content = content
