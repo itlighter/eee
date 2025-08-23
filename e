@@ -2,10 +2,11 @@
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q" -- ganti webhook
 
 local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
--- Exclude list full path
-local excludeFullPath = {
+-- Exclude list (pakai full path string biar gampang cek)
+local excludeList = {
     ["Workspace.Purchasable.Delta.Enchanted Sluice"] = true,
     ["Workspace.Purchasable.RiverTown.Merchant's Potion"] = true,
     ["Workspace.Purchasable.StarterTown"] = true,
@@ -16,70 +17,68 @@ local excludeFullPath = {
     ["Workspace.Purchasable.Volcano"] = true
 }
 
--- fungsi ambil semua properti dari instance
-local function getProperties(instance)
-    local props = {}
-    local success, propertyNames = pcall(function()
-        return instance:GetAttributes()
-    end)
-    
-    -- ambil Attributes dulu
-    if success then
-        for k, v in pairs(propertyNames) do
-            props[k] = v
-        end
+-- fungsi format angka dengan comma separator
+local function formatNumber(number)
+    if not number or type(number) ~= "number" then
+        return tostring(number or "N/A")
     end
     
-    -- ambil properti yang umum via pcall
-    local ignore = {ClassName=true, Name=true, Parent=true} -- contoh ignore biar ga kepakai
-    for _, prop in ipairs({"Name","Position","Size","Anchored","CanCollide","Transparency","Material","Color","CFrame"}) do
-        if pcall(function() return instance[prop] end) and not ignore[prop] then
-            props[prop] = instance[prop]
-        end
+    local formatted = tostring(number)
+    local k = #formatted
+    
+    -- Tambahkan comma setiap 3 digit dari belakang
+    while k > 3 do
+        formatted = formatted:sub(1, k-3) .. "," .. formatted:sub(k-2)
+        k = k - 3
     end
     
-    return props
+    return formatted
 end
 
--- ambil semua anak langsung kecuali exclude
-local function getChildrenProperties()
-    local results = {}
-
-    for _, child in ipairs(Workspace.Purchasable:GetChildren()) do
-        local path = child:GetFullName()
-        if not excludeFullPath[path] then
-            results[child.Name] = getProperties(child)
+-- fungsi ambil harga dari ShopItem
+local function getItemPrice(item)
+    local shopItem = item:FindFirstChild("ShopItem")
+    if shopItem then
+        local shardPrice = shopItem:GetAttribute("ShardPrice")
+        local regularPrice = shopItem:GetAttribute("Price")
+        
+        if shardPrice then
+            return shardPrice, "S" -- ShardPrice: harga di depan, currency "S" di belakang
+        elseif regularPrice then
+            return regularPrice, "$" -- Price: currency "$" di depan, harga di belakang
         end
     end
-
-    return results
+    return nil, nil
 end
 
--- kirim ke discord
-local function sendToDiscord(childrenProps)
+-- fungsi kirim ke discord
+local function sendToDiscord(location, itemsList)
     local req = (http_request or request or syn.request)
     if not req then
         warn("Exploit environment tidak support http_request")
         return
     end
 
-    local lines = {}
-    for childName, props in pairs(childrenProps) do
-        local propLines = {}
-        for k, v in pairs(props) do
-            table.insert(propLines, k .. ": " .. tostring(v))
+    -- format list ke bentuk nomor dengan harga
+    local stockLines = {}
+    for i, itemData in ipairs(itemsList) do
+        local line = i .. ". " .. itemData.name
+        if itemData.price and itemData.currency then
+            local formattedPrice = formatNumber(itemData.price)
+            if itemData.currency == "$" then
+                line = line .. " - " .. itemData.currency .. formattedPrice
+            else -- "S" currency
+                line = line .. " - " .. formattedPrice .. " " .. itemData.currency
+            end
         end
-        table.insert(lines, "**" .. childName .. "**\n" .. table.concat(propLines, "\n"))
+        table.insert(stockLines, line)
     end
 
-    local content
-    if #lines > 0 then
-        content = table.concat(lines, "\n\n")
-    else
-        content = "No stocks available"
-    end
+    local content = "Trader Location : " .. location .. "\n\nStocks :\n" .. table.concat(stockLines, "\n")
 
-    local data = { content = content }
+    local data = {
+        content = content
+    }
 
     req({
         Url = WEBHOOK_URL,
@@ -89,6 +88,42 @@ local function sendToDiscord(childrenProps)
     })
 end
 
--- langsung ambil dan kirim
-local childrenProps = getChildrenProperties()
-sendToDiscord(childrenProps)
+-- fungsi ambil semua anak langsung kecuali exclude dengan harga
+local function getChildrenList()
+    local results = {}
+
+    for _, child in ipairs(Workspace.Purchasable:GetChildren()) do
+        local path = child:GetFullName()
+        if not excludeList[path] then
+            local price, currency = getItemPrice(child)
+            table.insert(results, {
+                name = child.Name,
+                price = price,
+                currency = currency
+            })
+        end
+    end
+
+    return results
+end
+
+-- listen ke Notification event
+local notificationEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Info"):WaitForChild("Notification")
+
+notificationEvent.OnClientEvent:Connect(function(...)
+    local args = {...}
+    local message = args[1]
+
+    if typeof(message) == "string" and message:find("The wandering trader has arrived") then
+        -- cari lokasi setelah kata "at"
+        local location = message:match("at (.+)!")
+        if not location then
+            location = "Unknown"
+        end
+
+        task.delay(10, function()
+            local children = getChildrenList()
+            sendToDiscord(location, children)
+        end)
+    end
+end)
