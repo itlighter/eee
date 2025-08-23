@@ -54,15 +54,30 @@ local function serverHop()
         if #validServers > 0 then
             local pick = validServers[math.random(1, #validServers)]
             TeleportData[pick.id] = true
-            TeleportService:TeleportToPlaceInstance(PlaceId, pick.id, LocalPlayer)
+
+            -- coba teleport
+            local ok, err = pcall(function()
+                TeleportService:TeleportToPlaceInstance(PlaceId, pick.id, LocalPlayer)
+            end)
+
+            if not ok then
+                warn("Teleport gagal: " .. tostring(err))
+                task.wait(3) -- tunggu bentar biar ga spam
+                serverHop() -- coba hop lagi
+            end
         elseif result.nextPageCursor then
             Cursor = result.nextPageCursor
             serverHop()
         else
-            warn("Tidak ada server yang cocok.")
+            warn("Tidak ada server yang cocok, coba lagi 10 detik...")
+            task.wait(10)
+            Cursor = "" -- reset cursor biar balik ke page awal
+            serverHop()
         end
     else
-        warn("Gagal ambil data server.")
+        warn("Gagal ambil data server, retry dalam 10 detik...")
+        task.wait(10)
+        serverHop()
     end
 end
 
