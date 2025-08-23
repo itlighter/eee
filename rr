@@ -1,42 +1,43 @@
-local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
-local PlaceId = game.PlaceId
-local LocalPlayer = Players.LocalPlayer
+local placeId = game.PlaceId
+local player = Players.LocalPlayer
 
--- simpan server yang udah dikunjungi biar ga balik lagi
-local TeleportData = {}
-local Cursor = ""
-
-local function serverHop()
-    local servers = {}
-    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-
-    if Cursor ~= "" then
-        url = url .. "&cursor=" .. Cursor
+-- Fungsi ambil daftar server
+local function GetServers(cursor)
+    local url = "https://games.roblox.com/v1/games/"..placeId.."/servers/Public?sortOrder=Asc&limit=100"
+    if cursor then
+        url = url.."&cursor="..cursor
     end
-
-    local success, result = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet(url))
-    end)
-
-    if success and result and result.data then
-        for _, server in ipairs(result.data) do
-            if server.playing < server.maxPlayers and not TeleportData[server.id] and server.id ~= game.JobId then
-                TeleportData[server.id] = true
-                TeleportService:TeleportToPlaceInstance(PlaceId, server.id, LocalPlayer)
-                wait(2)
-            end
-        end
-        if result.nextPageCursor then
-            Cursor = result.nextPageCursor
-            serverHop()
-        end
-    else
-        warn("Gagal ambil data server.")
-    end
+    local response = game:HttpGet(url)
+    return HttpService:JSONDecode(response)
 end
 
--- jalankan
-serverHop()
+-- Cari server yang masih ada slot dan tidak kosong
+local function FindServer()
+    local cursor = nil
+    while true do
+        local servers = GetServers(cursor)
+        for _, s in ipairs(servers.data) do
+            if s.playing > 0 and s.playing < s.maxPlayers then
+                return s.id
+            end
+        end
+        if servers.nextPageCursor then
+            cursor = servers.nextPageCursor
+        else
+            break
+        end
+    end
+    return nil
+end
+
+-- Teleport ke server yang ditemukan
+local serverId = FindServer()
+if serverId then
+    TeleportService:TeleportToPlaceInstance(placeId, serverId, player)
+else
+    warn("Tidak ada server dengan slot tersedia.")
+end
