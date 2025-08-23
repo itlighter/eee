@@ -7,6 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local TeleportData = {}
 local Cursor = ""
+local MAX_PLAYER = 17 -- maksimal jumlah player di server
 
 local function serverHop()
     local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
@@ -23,8 +24,9 @@ local function serverHop()
         local validServers = {}
 
         for _, server in ipairs(result.data) do
-            -- skip kalau server sudah full atau sudah dikunjungi
+            -- skip server yg full, terlalu rame (> MAX_PLAYER), atau udah dikunjungi
             if server.playing < server.maxPlayers
+               and server.playing <= MAX_PLAYER
                and not TeleportData[server.id]
                and server.id ~= game.JobId then
                 table.insert(validServers, server)
