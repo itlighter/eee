@@ -12,7 +12,6 @@ local MAX_PLAYER = 15
 
 -- function kirim webhook
 local function sendWebhook(playerCount)
-
     local req = http_request or request or syn.request
     if req then
         local jobId = game.JobId
@@ -22,12 +21,12 @@ local function sendWebhook(playerCount)
             content = "☄️ Meteor Shower Found!\n" .. playerCount .. "/20\n" .. gameLink,
             components = {
                 {
-                    type = 1,
+                    type = 1, -- ActionRow
                     components = {
                         {
-                            type = 2,
-                            label = "Join Game",
-                            style = 5,
+                            type = 2,       -- Button
+                            label = "Join Game", -- label tombol
+                            style = 5,      -- Link button
                             url = gameLink
                         }
                     }
