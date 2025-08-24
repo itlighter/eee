@@ -46,143 +46,54 @@ end
 local req = getRequestFunction()
 
 -- Enhanced embed function with better error handling
-local function sendWebhook(playerCount)
-    print("🔄 Attempting to send webhook...")
-    
+-- Simple webhook fallback if embeds are causing issues
+local function sendSimpleWebhook(playerCount)
     if not req then
-        warn("❌ No request function available")
         return false
     end
     
-    -- Check cooldown
     local currentTime = tick()
     if currentTime - lastWebhookTime < WEBHOOK_COOLDOWN then
-        local remainingTime = math.ceil(WEBHOOK_COOLDOWN - (currentTime - lastWebhookTime))
-        print("⏰ Webhook on cooldown for " .. remainingTime .. " seconds")
         return false
     end
     
-    -- Check player count filter
-    if playerCount < MIN_PLAYERS or playerCount > MAX_PLAYERS then
-        print("🚫 Skipping webhook - player count (" .. playerCount .. ") not in ideal range")
-        return false
-    end
-    
-    -- FIXED: Add nil checks for game properties
     local jobId = game.JobId or "unknown"
     local gameLink = "roblox://placeId=" .. tostring(PlaceId) .. "&gameInstanceId=" .. tostring(jobId)
-    local webLink = "https://www.roblox.com/games/" .. tostring(PlaceId) .. "?gameInstanceId=" .. tostring(jobId)
-    local runtime = math.floor((tick() - startTime) / 60) -- Runtime in minutes
     
+    -- Super simple webhook - just content, no embeds or components
     local body = {
-        content = "@everyone ☄️ **METEOR SHOWER FOUND!** ☄️",
-        embeds = {
-            {
-                title = "🚀 Join Meteor Shower Server Now!",
-                url = gameLink, -- Makes title clickable
-                color = 65280, -- Green color
-                description = "[🌟 **Click here to join the server instantly!**](" .. gameLink .. ")",
-                thumbnail = {
-                    url = "https://i.imgur.com/meteor.png" -- Optional meteor image
-                },
-                fields = {
-                    {
-                        name = "👥 Current Players",
-                        value = "```" .. tostring(playerCount) .. "/20```",
-                        inline = true
-                    },
-                    {
-                        name = "🕒 Discovery Time",
-                        value = "```" .. os.date("%H:%M:%S") .. "```",
-                        inline = true
-                    },
-                    {
-                        name = "📊 Session Stats",
-                        value = "```Meteors Found: " .. tostring(meteorsFound) .. 
-                               "\nServers Checked: " .. tostring(serversChecked) .. 
-                               "\nSuccess Rate: " .. string.format("%.1f%%", (meteorsFound / math.max(serversChecked, 1)) * 100) .. "```",
-                        inline = false
-                    },
-                    {
-                        name = "🎮 Join Options",
-                        value = "🔹 [**Roblox App**](" .. gameLink .. ")\n" ..
-                               "🔹 [**Web Browser**](" .. webLink .. ")\n" ..
-                               "🔹 **Server ID:** `" .. tostring(jobId) .. "`",
-                        inline = false
-                    }
-                },
-                footer = {
-                    text = "Meteor Hunter • Runtime: " .. tostring(runtime) .. " minutes",
-                    icon_url = "https://cdn.discordapp.com/emojis/shooting_star.png" -- Optional
-                },
-                timestamp = os.date("!%Y-%m-%dT%H:%M:%S") .. "Z" -- ISO timestamp
-            }
-        },
-        components = {
-            {
-                type = 1,
-                components = {
-                    {
-                        type = 2,
-                        label = "Join via Roblox App",
-                        style = 1, -- Blue button
-                        url = gameLink,
-                        emoji = {
-                            name = "🚀"
-                        }
-                    },
-                    {
-                        type = 2,
-                        label = "Join via Browser",
-                        style = 5, -- Gray link button
-                        url = webLink,
-                        emoji = {
-                            name = "🌐"
-                        }
-                    }
-                }
-            }
-        }
+        content = "☄️ **METEOR SHOWER FOUND!** ☄️\n" ..
+                 "👥 Players: " .. tostring(playerCount) .. "/20\n" ..
+                 "🕒 Time: " .. os.date("%H:%M:%S") .. "\n" ..
+                 "🚀 Join: " .. gameLink
     }
-    
-    -- FIXED: Wrap JSON encoding in pcall
-    local jsonBody
-    local encodeSuccess, encodeResult = pcall(function()
-        return HttpService:JSONEncode(body)
-    end)
-    
-    if not encodeSuccess then
-        warn("❌ Failed to encode JSON:", encodeResult)
-        return false
-    end
-    
-    jsonBody = encodeResult
     
     local success, response = pcall(function()
         return req({
             Url = WEBHOOK_URL,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
-            Body = jsonBody
+            Body = HttpService:JSONEncode(body)
         })
     end)
     
     if success then
-        print("✅ Webhook sent successfully!")
         lastWebhookTime = currentTime
-        
         if response and response.StatusCode then
-            print("📊 Status Code:", response.StatusCode)
-            if response.StatusCode == 204 or response.StatusCode == 200 then
-                print("✅ Discord confirmed receipt!")
+            print("📊 Simple webhook status:", response.StatusCode)
+            if response.StatusCode == 200 or response.StatusCode == 204 then
+                print("✅ Simple webhook success!")
                 return true
             else
-                warn("⚠️ Unexpected status code:", response.StatusCode)
+                warn("⚠️ Simple webhook unexpected code:", response.StatusCode)
+                if response.Body then
+                    warn("Error details:", response.Body)
+                end
             end
         end
         return true
     else
-        warn("❌ Webhook request failed:", tostring(response))
+        warn("❌ Simple webhook failed:", tostring(response))
         return false
     end
 end
