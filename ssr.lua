@@ -4,49 +4,82 @@ local Players = game:GetService("Players")
 
 local PlaceId = game.PlaceId
 local LocalPlayer = Players.LocalPlayer
+local JobId = game.JobId
 
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1409010090517856297/mwsigy2jqmKyqbDp1DAgIrQp_40Ef6n4VUX8iFq0l1fWwzj22Ce2zz8mF9ezTAs5422k" -- ganti pake webhook lu
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1409010090517856297/mwsigy2jqmKyqbDp1DAgIrQp_40Ef6n4VUX8iFq0l1fWwzj22Ce2zz8mF9ezTAs5422k"
 local TeleportData = {}
 local Cursor = ""
 local MAX_PLAYER = 15
-local MAX_RETRIES = 5 -- maksimal retry server hop
+local MAX_RETRIES = 5
 
--- function kirim webhook
+-- Fungsi kirim webhook dengan tombol + Markdown + fallback link
 local function sendWebhook(playerCount)
     local req = http_request or request or syn.request
-    if req then
-        local jobId = game.JobId
-        local gameLink = ("https://huahuajuah.github.io/redirect/?placeId=%s&gameInstanceId=%s"):format(tostring(PlaceId), tostring(jobId))
-    
-        local body = {
-            content = "☄️ Meteor Shower Found! (" .. playerCount .. "/20)", -- cuma teks, tanpa link
-            components = {
-                {
-                    type = 1, -- ActionRow
-                    components = {
-                        {
-                            type = 2,       -- Button
-                            label = "Join Game", -- label tombol
-                            style = 5,      -- Link button
-                            url = gameLink
-                        }
+    if not req then
+        warn("No request function available")
+        return
+    end
+
+    local gameLink = ("https://huahuajuah.github.io/redirect/?placeId=%s&gameInstanceId=%s"):format(tostring(PlaceId), tostring(JobId))
+
+    -- Payload tombol
+    local bodyWithButton = {
+        content = "☄️ Meteor Shower Found! (" .. playerCount .. "/20)",
+        components = {
+            {
+                type = 1,
+                components = {
+                    {
+                        type = 2,
+                        style = 5,
+                        label = "Join Game",
+                        url = gameLink
                     }
                 }
             }
         }
-    
+    }
+
+    local success, err = pcall(function()
         req({
             Url = WEBHOOK_URL,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(body)
+            Body = HttpService:JSONEncode(bodyWithButton)
         })
-    else
-        warn("No request function available")
+    end)
+
+    -- Fallback ke Markdown clickable link
+    if not success then
+        warn("Tombol ga muncul, fallback ke Markdown/link penuh")
+        local bodyFallback = {
+            content = "☄️ Meteor Shower Found! (" .. playerCount .. "/20)\n[Join Game](" .. gameLink .. ")"
+        }
+        local fallbackSuccess, fallbackErr = pcall(function()
+            req({
+                Url = WEBHOOK_URL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode(bodyFallback)
+            })
+        end)
+
+        -- Kalau Markdown ga support, fallback terakhir ke link penuh
+        if not fallbackSuccess then
+            local bodyFullLink = {
+                content = "☄️ Meteor Shower Found! (" .. playerCount .. "/20)\nJoin Game: " .. gameLink
+            }
+            req({
+                Url = WEBHOOK_URL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode(bodyFullLink)
+            })
+        end
     end
 end
 
--- serverhop function dengan failsafe
+-- Serverhop biasa
 local function serverHop()
     local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
     if Cursor ~= "" then
@@ -64,7 +97,7 @@ local function serverHop()
             if server.playing < server.maxPlayers
                and server.playing <= MAX_PLAYER
                and not TeleportData[server.id]
-               and server.id ~= game.JobId then
+               and server.id ~= JobId then
                 table.insert(validServers, server)
             end
         end
@@ -77,7 +110,7 @@ local function serverHop()
             end)
             if not teleportSuccess then
                 warn("Teleport gagal: "..tostring(err)..". Mencoba server lain...")
-                serverHop() -- retry server hop
+                serverHop()
             end
         elseif result.nextPageCursor then
             Cursor = result.nextPageCursor
@@ -90,7 +123,7 @@ local function serverHop()
     end
 end
 
--- versi safe server hop dengan retry limit
+-- Safe server hop dengan retry limit
 local function safeServerHop(retries)
     retries = retries or 0
     local success, err = pcall(serverHop)
@@ -105,22 +138,34 @@ local function safeServerHop(retries)
     end
 end
 
--- cek meteor
+-- Rejoin server saat ini
+local function rejoinCurrentServer()
+    local success, err = pcall(function()
+        TeleportService:TeleportToPlaceInstance(PlaceId, JobId, LocalPlayer)
+    end)
+    if success then
+        print("Mencoba rejoin server saat ini...")
+    else
+        warn("Gagal rejoin server: "..tostring(err))
+    end
+end
+
+-- Cek Meteor Shower
 local function checkMeteor()
     local boosts = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("MainUI"):WaitForChild("Boosts")
 
     if boosts:FindFirstChild("Meteor Shower") then
         local playerCount = #Players:GetPlayers()
         sendWebhook(playerCount)
-        task.wait(20) -- tunggu 20 detik abis kirim webhook
+        task.wait(20)
         safeServerHop()
     else
-        task.wait(30) -- ga ketemu → tunggu 30 detik dulu
+        task.wait(30)
         safeServerHop()
     end
 end
 
--- tunggu 60 detik abis join server baru
-task.delay(60, function()
+-- Jalankan cek Meteor Shower 60 detik setelah join server baru
+task.delay(30, function()
     checkMeteor()
 end)
