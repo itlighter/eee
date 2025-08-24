@@ -9,6 +9,7 @@ local WEBHOOK_URL = "https://discord.com/api/webhooks/1409010090517856297/mwsigy
 local TeleportData = {}
 local Cursor = ""
 local MAX_PLAYER = 15
+local MAX_RETRIES = 5 -- maksimal retry server hop
 
 -- function kirim webhook
 local function sendWebhook(playerCount)
@@ -18,7 +19,7 @@ local function sendWebhook(playerCount)
         local gameLink = ("https://huahuajuah.github.io/redirect/?placeId=%s&gameInstanceId=%s"):format(tostring(PlaceId), tostring(jobId))
     
         local body = {
-            content = "☄️ Meteor Shower Found!\n" .. playerCount .. "/20\n" .. gameLink,
+            content = "☄️ Meteor Shower Found! (" .. playerCount .. "/20)", -- cuma teks, tanpa link
             components = {
                 {
                     type = 1, -- ActionRow
@@ -45,7 +46,7 @@ local function sendWebhook(playerCount)
     end
 end
 
--- serverhop function
+-- serverhop function dengan failsafe
 local function serverHop()
     local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
     if Cursor ~= "" then
@@ -71,7 +72,13 @@ local function serverHop()
         if #validServers > 0 then
             local pick = validServers[math.random(1, #validServers)]
             TeleportData[pick.id] = true
-            TeleportService:TeleportToPlaceInstance(PlaceId, pick.id, LocalPlayer)
+            local teleportSuccess, err = pcall(function()
+                TeleportService:TeleportToPlaceInstance(PlaceId, pick.id, LocalPlayer)
+            end)
+            if not teleportSuccess then
+                warn("Teleport gagal: "..tostring(err)..". Mencoba server lain...")
+                serverHop() -- retry server hop
+            end
         elseif result.nextPageCursor then
             Cursor = result.nextPageCursor
             serverHop()
@@ -83,6 +90,21 @@ local function serverHop()
     end
 end
 
+-- versi safe server hop dengan retry limit
+local function safeServerHop(retries)
+    retries = retries or 0
+    local success, err = pcall(serverHop)
+    if not success then
+        warn("ServerHop error: "..tostring(err))
+        if retries < MAX_RETRIES then
+            task.wait(3)
+            safeServerHop(retries + 1)
+        else
+            warn("Melewati server hop, terlalu banyak retry")
+        end
+    end
+end
+
 -- cek meteor
 local function checkMeteor()
     local boosts = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("MainUI"):WaitForChild("Boosts")
@@ -90,12 +112,11 @@ local function checkMeteor()
     if boosts:FindFirstChild("Meteor Shower") then
         local playerCount = #Players:GetPlayers()
         sendWebhook(playerCount)
-
         task.wait(20) -- tunggu 20 detik abis kirim webhook
-        serverHop()
+        safeServerHop()
     else
         task.wait(30) -- ga ketemu → tunggu 30 detik dulu
-        serverHop()
+        safeServerHop()
     end
 end
 
