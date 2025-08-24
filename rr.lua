@@ -21,9 +21,7 @@ print("🔄 Sending test webhook message...")
 -- Pesan yang kamu minta
 
 local body = {
-
-    content = "Meteor Shower Found! 14/20 roblox://placeId=129827112113663&gameInstanceId=0f2d6fe3-94dc-407a-81ff-bce58be34563"
-
+    content = "☄️ Meteor Shower Found!\n" .. playerCount .. "/20\n[🚀 **Click to Join Server**]("roblox://placeId=129827112113663&gameInstanceId=0f2d6fe3-94dc-407a-81ff-bce58be34563")"
 }
 
 local success, response = pcall(function()
