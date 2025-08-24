@@ -17,17 +17,38 @@ TeleportData.VisitedServers = TeleportData.VisitedServers or {}
 TeleportData.VisitedServers[game.JobId] = true -- tandai server ini udah dikunjungi
 
 -- kirim webhook
-local function sendWebhook(message)
+local function sendWebhook(playerCount)
     if not req then
         warn("Request function tidak tersedia di executor kamu.")
         return
     end
 
+    local jobId = game.JobId
+    local gameLink = "roblox://placeId=" .. PLACE_ID .. "&gameInstanceId=" .. jobId
+
+    -- Discord JSON payload with a clickable button
+    local body = {
+        content = "☄️ Meteor Shower Found!\n" .. playerCount .. "/20\n" .. gameLink,
+        components = {
+            {
+                type = 1, -- Action row
+                components = {
+                    {
+                        type = 2,       -- Button
+                        label = "Join Game",
+                        style = 5,      -- Link button
+                        url = gameLink
+                    }
+                }
+            }
+        }
+    }
+
     req({
         Url = WEBHOOK_URL,
         Method = "POST",
         Headers = {["Content-Type"] = "application/json"},
-        Body = HttpService:JSONEncode({content = message})
+        Body = HttpService:JSONEncode(body)
     })
 end
 
@@ -91,14 +112,7 @@ task.wait(60) -- delay 1 menit setelah join biar aman
 while task.wait(30) do
     if checkMeteor() then
         local playerCount = #Players:GetPlayers()
-        local jobId = game.JobId
-        local link = "roblox://placeId=" .. PLACE_ID .. "&gameInstanceId=" .. jobId
-
-        local msg = "☄️ Meteor Shower Found!\n"
-            ..playerCount.."/20\n"
-            ..link
-
-        sendWebhook(msg) -- kirim sekali
+        sendWebhook(playerCount)
 
         task.wait(20)
         serverHop() -- hop setelah webhook
