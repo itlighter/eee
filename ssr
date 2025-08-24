@@ -12,16 +12,34 @@ local MAX_PLAYER = 15
 
 -- function kirim webhook
 local function sendWebhook(msg)
-    local data = {["content"] = msg}
-    local json = HttpService:JSONEncode(data)
 
     local req = http_request or request or syn.request
     if req then
+        local jobId = game.JobId
+        local gameLink = "roblox://placeId=" .. PLACE_ID .. "&gameInstanceId=" .. jobId
+    
+        local body = {
+            content = "☄️ Meteor Shower Found!\n" .. playerCount .. "/20\n" .. gameLink,
+            components = {
+                {
+                    type = 1,
+                    components = {
+                        {
+                            type = 2,
+                            label = "Join Game",
+                            style = 5,
+                            url = gameLink
+                        }
+                    }
+                }
+            }
+        }
+    
         req({
             Url = WEBHOOK_URL,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
-            Body = json
+            Body = HttpService:JSONEncode(body)
         })
     else
         warn("No request function available")
@@ -72,9 +90,7 @@ local function checkMeteor()
 
     if boosts:FindFirstChild("Meteor Shower") then
         local playerCount = #Players:GetPlayers()
-        local link = "https://www.roblox.com/games/"..PlaceId.."?serverId="..game.JobId
-        local msg = string.format("Meteor Shower Found\nPlayers: %d\nServer: %s", playerCount, link)
-        sendWebhook(msg)
+        sendWebhook(playerCount)
 
         task.wait(20) -- tunggu 20 detik abis kirim webhook
         serverHop()
