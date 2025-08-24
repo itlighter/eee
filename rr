@@ -1,5 +1,5 @@
 --// Config
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q"
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1409010090517856297/mwsigy2jqmKyqbDp1DAgIrQp_40Ef6n4VUX8iFq0l1fWwzj22Ce2zz8mF9ezTAs5422k"
 local PLACE_ID = game.PlaceId
 local MAX_PLAYER = 15 -- filter max player biar ga penuh
 local HttpService = game:GetService("HttpService")
