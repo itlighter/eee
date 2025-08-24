@@ -85,9 +85,9 @@ while task.wait(30) do -- cek tiap 30 detik
         local jobId = game.JobId
         local link = "roblox://placeId=" .. PLACE_ID .. "&gameInstanceId=" .. jobId
 
-        local msg = "☄️ Meteor Shower Found!\n"
-            .."👥 "..playerCount.." Players\n"
-            .."🔗 "..link
+        local msg = "Meteor Shower Found!\n"
+            ..playerCount.."/20\n"
+            ..link
 
         sendWebhook(msg) -- kirim sekali
 
