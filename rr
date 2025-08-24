@@ -11,8 +11,8 @@ local LocalPlayer = Players.LocalPlayer
 -- cari request function
 local req = (syn and syn.request) or (http_request) or (fluxus and fluxus.request) or request
 
--- Data teleport (buat visited servers)
-local TeleportData = game:GetService("TeleportService"):GetLocalPlayerTeleportData() or {}
+-- Data teleport (pakai untuk server visited)
+local TeleportData = TeleportService:GetLocalPlayerTeleportData() or {}
 TeleportData.VisitedServers = TeleportData.VisitedServers or {}
 TeleportData.VisitedServers[game.JobId] = true -- tandai server ini udah dikunjungi
 
@@ -37,51 +37,51 @@ local function checkMeteor()
     return boosts:FindFirstChild("Meteor Shower") ~= nil
 end
 
--- server hop
+-- server hop dengan TeleportData
+local Cursor = "" -- cursor global
 local function serverHop()
-    local servers = {}
-    local cursor = ""
+    local url = "https://games.roblox.com/v1/games/" .. PLACE_ID .. "/servers/Public?sortOrder=Desc&limit=100"
+    if Cursor ~= "" then
+        url = url .. "&cursor=" .. Cursor
+    end
 
     local success, result = pcall(function()
-        return game:HttpGet(
-            ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100%s"):format(
-                PLACE_ID,
-                cursor ~= "" and "&cursor="..cursor or ""
-            )
-        )
+        return HttpService:JSONDecode(game:HttpGet(url))
     end)
 
-    if not success then
-        warn("Gagal ambil server list")
-        return
-    end
+    if success and result and result.data then
+        local validServers = {}
 
-    local data = HttpService:JSONDecode(result)
-    for _, server in ipairs(data.data) do
-        if server.playing < MAX_PLAYER 
-            and server.id ~= game.JobId 
-            and not TeleportData.VisitedServers[server.id] then
-            table.insert(servers, server.id)
+        for _, server in ipairs(result.data) do
+            if server.playing < server.maxPlayers
+               and server.playing <= MAX_PLAYER
+               and server.id ~= game.JobId
+               and not TeleportData.VisitedServers[server.id] then
+                table.insert(validServers, server)
+            end
         end
-    end
 
-    if #servers > 0 then
-        local randomServer = servers[math.random(1, #servers)]
-        print("Teleporting ke server:", randomServer)
-
-        -- tandai server yang mau dikunjungi
-        TeleportData.VisitedServers[randomServer] = true
-
-        local ok, err = pcall(function()
-            TeleportService:TeleportToPlaceInstance(PLACE_ID, randomServer, LocalPlayer, TeleportData)
-        end)
-        if not ok then
-            warn("Teleport gagal: "..tostring(err))
-            task.wait(5)
-            serverHop() -- retry kalau gagal
+        if #validServers > 0 then
+            local pick = validServers[math.random(1, #validServers)]
+            TeleportData.VisitedServers[pick.id] = true -- tandai server sebagai visited
+            print("Teleporting ke server:", pick.id)
+            
+            local ok, err = pcall(function()
+                TeleportService:TeleportToPlaceInstance(PLACE_ID, pick.id, LocalPlayer, TeleportData)
+            end)
+            if not ok then
+                warn("Teleport gagal: "..tostring(err))
+                task.wait(5)
+                serverHop()
+            end
+        elseif result.nextPageCursor then
+            Cursor = result.nextPageCursor
+            serverHop()
+        else
+            warn("Tidak ada server yang cocok.")
         end
     else
-        warn("Ga ada server kosong/valid (udah pernah dikunjungi semua), tunggu 30 detik...")
+        warn("Gagal ambil data server.")
     end
 end
 
