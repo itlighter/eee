@@ -12,7 +12,7 @@ local Cursor = ""
 local MAX_PLAYER = 15
 local MAX_RETRIES = 5
 
--- Fungsi kirim webhook dengan tombol + Markdown + fallback link
+-- Fungsi kirim webhook langsung Markdown
 local function sendWebhook(playerCount)
     local req = http_request or request or syn.request
     if not req then
@@ -22,22 +22,8 @@ local function sendWebhook(playerCount)
 
     local gameLink = ("https://huahuajuah.github.io/redirect/?placeId=%s&gameInstanceId=%s"):format(tostring(PlaceId), tostring(JobId))
 
-    -- Payload tombol
-    local bodyWithButton = {
-        content = "☄️ Meteor Shower Found! (" .. playerCount .. "/20)",
-        components = {
-            {
-                type = 1,
-                components = {
-                    {
-                        type = 2,
-                        style = 5,
-                        label = "Join Game",
-                        url = gameLink
-                    }
-                }
-            }
-        }
+    local body = {
+        content = "☄️ Meteor Shower Found!\n(" .. playerCount .. "/20)\n[Join Game](" .. gameLink .. ")"
     }
 
     local success, err = pcall(function()
@@ -45,37 +31,12 @@ local function sendWebhook(playerCount)
             Url = WEBHOOK_URL,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(bodyWithButton)
+            Body = HttpService:JSONEncode(body)
         })
     end)
 
-    -- Fallback ke Markdown clickable link
     if not success then
-        warn("Tombol ga muncul, fallback ke Markdown/link penuh")
-        local bodyFallback = {
-            content = "☄️ Meteor Shower Found! (" .. playerCount .. "/20)\n[Join Game](" .. gameLink .. ")"
-        }
-        local fallbackSuccess, fallbackErr = pcall(function()
-            req({
-                Url = WEBHOOK_URL,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = HttpService:JSONEncode(bodyFallback)
-            })
-        end)
-
-        -- Kalau Markdown ga support, fallback terakhir ke link penuh
-        if not fallbackSuccess then
-            local bodyFullLink = {
-                content = "☄️ Meteor Shower Found! (" .. playerCount .. "/20)\nJoin Game: " .. gameLink
-            }
-            req({
-                Url = WEBHOOK_URL,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = HttpService:JSONEncode(bodyFullLink)
-            })
-        end
+        warn("Gagal kirim webhook: " .. tostring(err))
     end
 end
 
