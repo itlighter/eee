@@ -16,7 +16,7 @@ local function sendWebhook(playerCount)
     local req = http_request or request or syn.request
     if req then
         local jobId = game.JobId
-        local gameLink = "roblox://placeId=" .. PlaceId .. "&gameInstanceId=" .. jobId
+        local gameLink = ("https://huahuajuah.github.io/redirect/?placeId=%s&gameInstanceId=%s"):format(tostring(PlaceId), tostring(jobId))
     
         local body = {
             content = "☄️ Meteor Shower Found!\n" .. playerCount .. "/20\n" .. gameLink,
