@@ -33,7 +33,7 @@ end
 
 -- cek Meteor Shower
 local function checkMeteor()
-    local boosts = LocalPlayer.PlayerGUI.MainUI.Boosts
+    local boosts = LocalPlayer.PlayerGui.MainUI.Boosts
 
     local meteor = boosts:FindFirstChild("Meteor Shower")
     if meteor then
