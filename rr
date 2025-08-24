@@ -11,10 +11,11 @@ local LocalPlayer = Players.LocalPlayer
 -- cari request function
 local req = (syn and syn.request) or (http_request) or (fluxus and fluxus.request) or request
 
--- Data teleport (pakai untuk server visited)
-local TeleportData = TeleportService:GetLocalPlayerTeleportData() or {}
-TeleportData.VisitedServers = TeleportData.VisitedServers or {}
-TeleportData.VisitedServers[game.JobId] = true -- tandai server ini udah dikunjungi
+-- ambil TeleportData, fallback ke {} kalau nil
+local TeleportData = TeleportService:GetLocalPlayerTeleportData()
+if not TeleportData then
+    TeleportData = {}
+end
 
 -- kirim webhook
 local function sendWebhook(playerCount)
@@ -26,17 +27,16 @@ local function sendWebhook(playerCount)
     local jobId = game.JobId
     local gameLink = "roblox://placeId=" .. PLACE_ID .. "&gameInstanceId=" .. jobId
 
-    -- Discord JSON payload with a clickable button
     local body = {
         content = "☄️ Meteor Shower Found!\n" .. playerCount .. "/20\n" .. gameLink,
         components = {
             {
-                type = 1, -- Action row
+                type = 1,
                 components = {
                     {
-                        type = 2,       -- Button
+                        type = 2,
                         label = "Join Game",
-                        style = 5,      -- Link button
+                        style = 5,
                         url = gameLink
                     }
                 }
@@ -58,8 +58,8 @@ local function checkMeteor()
     return boosts:FindFirstChild("Meteor Shower") ~= nil
 end
 
--- server hop dengan TeleportData
-local Cursor = "" -- cursor global
+-- server hop bawa TeleportData langsung
+local Cursor = ""
 local function serverHop()
     local url = "https://games.roblox.com/v1/games/" .. PLACE_ID .. "/servers/Public?sortOrder=Desc&limit=100"
     if Cursor ~= "" then
@@ -76,17 +76,15 @@ local function serverHop()
         for _, server in ipairs(result.data) do
             if server.playing < server.maxPlayers
                and server.playing <= MAX_PLAYER
-               and server.id ~= game.JobId
-               and not TeleportData.VisitedServers[server.id] then
+               and server.id ~= game.JobId then
                 table.insert(validServers, server)
             end
         end
 
         if #validServers > 0 then
             local pick = validServers[math.random(1, #validServers)]
-            TeleportData.VisitedServers[pick.id] = true -- tandai server sebagai visited
             print("Teleporting ke server:", pick.id)
-            
+
             local ok, err = pcall(function()
                 TeleportService:TeleportToPlaceInstance(PLACE_ID, pick.id, LocalPlayer, TeleportData)
             end)
@@ -107,7 +105,7 @@ local function serverHop()
 end
 
 -- main loop
-task.wait(60) -- delay 1 menit setelah join biar aman
+task.wait(60)
 
 while task.wait(30) do
     if checkMeteor() then
@@ -115,9 +113,9 @@ while task.wait(30) do
         sendWebhook(playerCount)
 
         task.wait(20)
-        serverHop() -- hop setelah webhook
+        serverHop()
     else
         print("Meteor tidak ada, hop aja...")
-        serverHop() -- hop walau ga nemu Meteor
+        serverHop()
     end
 end
