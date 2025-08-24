@@ -48,24 +48,34 @@ local req = getRequestFunction()
 -- Enhanced embed function with better error handling
 -- Simple webhook fallback if embeds are causing issues
 local function sendSimpleWebhook(playerCount)
-    if not req then
-        return false
-    end
+    if not req then return false end
     
     local currentTime = tick()
-    if currentTime - lastWebhookTime < WEBHOOK_COOLDOWN then
-        return false
-    end
+    if currentTime - lastWebhookTime < WEBHOOK_COOLDOWN then return false end
     
     local jobId = game.JobId or "unknown"
-    local gameLink = "roblox://placeId=" .. tostring(PlaceId) .. "&gameInstanceId=" .. tostring(jobId)
     
-    -- Super simple webhook - just content, no embeds or components
+    -- Use your GitHub Pages redirect
+    local redirectLink = (https://huahuajuah.github.io/redirect/?placeId=%s&gameInstanceId=%s"):format(tostring(PlaceId), tostring(jobId))
+    
+    -- Webhook with clickable button
     local body = {
         content = "☄️ **METEOR SHOWER FOUND!** ☄️\n" ..
-                 "👥 Players: " .. tostring(playerCount) .. "/20\n" ..
-                 "🕒 Time: " .. os.date("%H:%M:%S") .. "\n" ..
-                 "🚀 Join: " .. gameLink
+                  "👥 Players: " .. tostring(playerCount) .. "/20\n" ..
+                  "🕒 Time: " .. os.date("%H:%M:%S"),
+        components = {
+            {
+                type = 1,
+                components = {
+                    {
+                        type = 2,
+                        style = 5, -- Link button
+                        label = "🚀 Join Server",
+                        url = redirectLink
+                    }
+                }
+            }
+        }
     }
     
     local success, response = pcall(function()
@@ -80,23 +90,19 @@ local function sendSimpleWebhook(playerCount)
     if success then
         lastWebhookTime = currentTime
         if response and response.StatusCode then
-            print("📊 Simple webhook status:", response.StatusCode)
+            print("📊 Webhook status:", response.StatusCode)
             if response.StatusCode == 200 or response.StatusCode == 204 then
-                print("✅ Simple webhook success!")
+                print("✅ Webhook sent!")
                 return true
-            else
-                warn("⚠️ Simple webhook unexpected code:", response.StatusCode)
-                if response.Body then
-                    warn("Error details:", response.Body)
-                end
             end
         end
         return true
     else
-        warn("❌ Simple webhook failed:", tostring(response))
+        warn("❌ Webhook failed:", tostring(response))
         return false
     end
 end
+
 
 -- FIXED: Better server hop with more error handling
 local function serverHop()
