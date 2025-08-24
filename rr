@@ -11,6 +11,11 @@ local LocalPlayer = Players.LocalPlayer
 -- cari request function
 local req = (syn and syn.request) or (http_request) or (fluxus and fluxus.request) or request
 
+-- Data teleport (buat visited servers)
+local TeleportData = game:GetService("TeleportService"):GetLocalPlayerTeleportData() or {}
+TeleportData.VisitedServers = TeleportData.VisitedServers or {}
+TeleportData.VisitedServers[game.JobId] = true -- tandai server ini udah dikunjungi
+
 -- kirim webhook
 local function sendWebhook(message)
     if not req then
@@ -53,7 +58,9 @@ local function serverHop()
 
     local data = HttpService:JSONDecode(result)
     for _, server in ipairs(data.data) do
-        if server.playing < MAX_PLAYER and server.id ~= game.JobId then
+        if server.playing < MAX_PLAYER 
+            and server.id ~= game.JobId 
+            and not TeleportData.VisitedServers[server.id] then
             table.insert(servers, server.id)
         end
     end
@@ -61,8 +68,12 @@ local function serverHop()
     if #servers > 0 then
         local randomServer = servers[math.random(1, #servers)]
         print("Teleporting ke server:", randomServer)
+
+        -- tandai server yang mau dikunjungi
+        TeleportData.VisitedServers[randomServer] = true
+
         local ok, err = pcall(function()
-            TeleportService:TeleportToPlaceInstance(PLACE_ID, randomServer, LocalPlayer)
+            TeleportService:TeleportToPlaceInstance(PLACE_ID, randomServer, LocalPlayer, TeleportData)
         end)
         if not ok then
             warn("Teleport gagal: "..tostring(err))
@@ -70,7 +81,7 @@ local function serverHop()
             serverHop() -- retry kalau gagal
         end
     else
-        warn("Ga ada server kosong/valid, tunggu 30 detik...")
+        warn("Ga ada server kosong/valid (udah pernah dikunjungi semua), tunggu 30 detik...")
         task.wait(30)
         serverHop()
     end
@@ -85,7 +96,7 @@ while task.wait(30) do -- cek tiap 30 detik
         local jobId = game.JobId
         local link = "roblox://placeId=" .. PLACE_ID .. "&gameInstanceId=" .. jobId
 
-        local msg = "Meteor Shower Found!\n"
+        local msg = "☄️ Meteor Shower Found!\n"
             ..playerCount.."/20\n"
             ..link
 
