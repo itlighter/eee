@@ -40,7 +40,7 @@ local function checkMeteor()
         -- format pesan
         local playerCount = #Players:GetPlayers()
         local jobId = game.JobId
-        local link = "https://www.roblox.com/games/"..PLACE_ID.."/-/join?jobId="..jobId
+        local link = "roblox://placeId=" .. PlaceId .. "&gameInstanceId=" .. game.JobId
 
         local msg = "Meteor Shower Found\n"
             ..playerCount.." Players in server\n"
