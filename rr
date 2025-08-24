@@ -1,92 +1,104 @@
+--// Config
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q" -- ganti webhook kamu
+local PLACE_ID = game.PlaceId
+
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
-
-local WEBHOOK_URL = "YOUR_WEBHOOK_URL_HERE"
 local LocalPlayer = Players.LocalPlayer
-local PlaceId = game.PlaceId
-local TeleportData = {}
-local Cursor = ""
 
--- batas maksimal pemain yang boleh dimasukin
-local MAX_PLAYER = 15
+-- cari request function yang sesuai executor
+local req = (syn and syn.request) or (http_request) or (fluxus and fluxus.request) or request
 
--- fungsi buat kirim ke webhook
+-- kirim webhook
 local function sendWebhook(message)
+    if not req then
+        warn("Request function tidak tersedia di executor kamu.")
+        return
+    end
+
     local data = {
         ["content"] = message
     }
-    local jsonData = HttpService:JSONEncode(data)
 
-    request({
+    req({
         Url = WEBHOOK_URL,
         Method = "POST",
-        Headers = {["Content-Type"] = "application/json"},
-        Body = jsonData
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode(data)
     })
 end
 
--- cek meteor shower
+-- cek Meteor Shower
 local function checkMeteor()
-    local boosts = LocalPlayer.PlayerGui:FindFirstChild("MainUI") and LocalPlayer.PlayerGui.MainUI:FindFirstChild("Boosts")
-    if boosts and boosts:FindFirstChild("Meteor Shower") then
-        local playerCount = #Players:GetPlayers()
-        local serverLink = "roblox://placeId=" .. PlaceId .. "&gameInstanceId=" .. game.JobId
+    local boosts = LocalPlayer:WaitForChild("PlayerGui")
+        :WaitForChild("MainUI")
+        :WaitForChild("Boosts")
 
-        local msg = string.format("Meteor Shower Found!\nPlayers: %d\nServer: %s", playerCount, serverLink)
+    local meteor = boosts:FindFirstChild("Meteor Shower")
+    if meteor then
+        -- format pesan
+        local playerCount = #Players:GetPlayers()
+        local jobId = game.JobId
+        local link = "https://www.roblox.com/games/"..PLACE_ID.."/-/join?jobId="..jobId
+
+        local msg = "Meteor Shower Found\n"
+            ..playerCount.." Players in server\n"
+            ..link
+
         sendWebhook(msg)
 
-        task.wait(20) -- tunggu 20 detik sebelum serverhop
+        task.wait(20) -- tunggu 20 detik
         return true
+    else
+        return false
     end
-    return false
 end
 
 -- server hop
 local function serverHop()
-    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-    if Cursor ~= "" then
-        url = url .. "&cursor=" .. Cursor
-    end
+    local servers = {}
+    local cursor = ""
 
+    -- ambil daftar server dari Roblox API
     local success, result = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet(url))
+        return game:HttpGet(
+            ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100%s"):format(
+                PLACE_ID,
+                cursor ~= "" and "&cursor="..cursor or ""
+            )
+        )
     end)
 
-    if success and result and result.data then
-        for _, server in ipairs(result.data) do
-            -- cuma masuk server yg ga penuh dan <= MAX_PLAYER
-            if server.playing < server.maxPlayers 
-               and server.playing <= MAX_PLAYER 
-               and not TeleportData[server.id] 
-               and server.id ~= game.JobId then
+    if not success then
+        warn("Gagal ambil server list")
+        return
+    end
 
-                TeleportData[server.id] = true
-                local ok, err = pcall(function()
-                    TeleportService:TeleportToPlaceInstance(PlaceId, server.id, LocalPlayer)
-                end)
-                if not ok then
-                    warn("Teleport gagal, coba server lain: ", err)
-                end
-                task.wait(2)
-            end
+    local data = HttpService:JSONDecode(result)
+    for _, server in ipairs(data.data) do
+        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+            table.insert(servers, server.id)
         end
-        if result.nextPageCursor then
-            Cursor = result.nextPageCursor
-            serverHop()
-        end
+    end
+
+    if #servers > 0 then
+        local randomServer = servers[math.random(1, #servers)]
+        print("Teleporting to server:", randomServer)
+        TeleportService:TeleportToPlaceInstance(PLACE_ID, randomServer, LocalPlayer)
     else
-        warn("Gagal ambil data server.")
+        warn("Ga ada server kosong, coba lagi nanti...")
     end
 end
 
--- jalankan
-task.delay(60, function() -- tunggu 1 menit setelah join sebelum mulai
-    while true do
-        local found = checkMeteor()
-        if not found then
-            task.wait(30) -- tunggu 30 detik kalo ga nemu
-            serverHop()
-        end
+-- main loop
+task.wait(60) -- delay 1 menit setelah server hop biar aman
+
+while task.wait(30) do -- cek tiap 30 detik
+    local found = checkMeteor()
+    if found then
+        serverHop()
     end
-end)
+end
