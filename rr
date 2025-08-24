@@ -54,8 +54,14 @@ end
 
 -- cek Meteor Shower
 local function checkMeteor()
-    local boosts = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("MainUI"):WaitForChild("Boosts")
-    return boosts:FindFirstChild("Meteor Shower") ~= nil
+    local boosts = LocalPlayer:FindFirstChild("PlayerGui")
+        and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
+        and LocalPlayer.PlayerGui.MainUI:FindFirstChild("Boosts")
+
+    if boosts then
+        return boosts:FindFirstChild("Meteor Shower") ~= nil
+    end
+    return false
 end
 
 -- server hop bawa TeleportData langsung
