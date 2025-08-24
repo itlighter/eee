@@ -54,7 +54,7 @@ end
 
 -- cek Meteor Shower
 local function checkMeteor()
-    local boosts = LocalPlayer.:WaitForChild("PlayerGui"):WaitForChild("MainUI"):WaitForChild("Boosts")
+    local boosts = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("MainUI"):WaitForChild("Boosts")
     return boosts:FindFirstChild("Meteor Shower") ~= nil
 end
 
