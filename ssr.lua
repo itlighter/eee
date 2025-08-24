@@ -11,7 +11,7 @@ local Cursor = ""
 local MAX_PLAYER = 15
 
 -- function kirim webhook
-local function sendWebhook(msg)
+local function sendWebhook(playerCount)
 
     local req = http_request or request or syn.request
     if req then
