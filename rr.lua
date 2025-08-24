@@ -21,9 +21,7 @@ print("🔄 Sending test webhook message...")
 -- Pesan yang kamu minta
 
 local body = {
-    {
   "content": "[Klik untuk join game](https://www.roblox.com/games/129827112113663/?launchData=0f2d6fe3-94dc-407a-81ff-bce58be34563)"
-}
 }
 
 local success, response = pcall(function()
