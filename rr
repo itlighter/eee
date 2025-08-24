@@ -1,13 +1,14 @@
 --// Config
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q" -- ganti webhook kamu
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1408441169028972797/_ls8aguNPMDTgrO6yJ6l72p5CXjUD56md_gy6t7xN0Lkf69pqhxaHFTddOtwkX1a3W0Q"
 local PLACE_ID = game.PlaceId
+local MAX_PLAYER = 15 -- filter max player biar ga penuh
 
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- cari request function yang sesuai executor
+-- cari request function
 local req = (syn and syn.request) or (http_request) or (fluxus and fluxus.request) or request
 
 -- kirim webhook
@@ -17,42 +18,18 @@ local function sendWebhook(message)
         return
     end
 
-    local data = {
-        ["content"] = message
-    }
-
     req({
         Url = WEBHOOK_URL,
         Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = HttpService:JSONEncode(data)
+        Headers = {["Content-Type"] = "application/json"},
+        Body = HttpService:JSONEncode({content = message})
     })
 end
 
 -- cek Meteor Shower
 local function checkMeteor()
     local boosts = LocalPlayer.PlayerGui.MainUI.Boosts
-
-    local meteor = boosts:FindFirstChild("Meteor Shower")
-    if meteor then
-        -- format pesan
-        local playerCount = #Players:GetPlayers()
-        local jobId = game.JobId
-        local link = "roblox://placeId=" .. PlaceId .. "&gameInstanceId=" .. game.JobId
-
-        local msg = "Meteor Shower Found\n"
-            ..playerCount.." Players in server\n"
-            ..link
-
-        sendWebhook(msg)
-
-        task.wait(20) -- tunggu 20 detik
-        return true
-    else
-        return false
-    end
+    return boosts:FindFirstChild("Meteor Shower") ~= nil
 end
 
 -- server hop
@@ -60,7 +37,6 @@ local function serverHop()
     local servers = {}
     local cursor = ""
 
-    -- ambil daftar server dari Roblox API
     local success, result = pcall(function()
         return game:HttpGet(
             ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100%s"):format(
@@ -77,26 +53,45 @@ local function serverHop()
 
     local data = HttpService:JSONDecode(result)
     for _, server in ipairs(data.data) do
-        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+        if server.playing < MAX_PLAYER and server.id ~= game.JobId then
             table.insert(servers, server.id)
         end
     end
 
     if #servers > 0 then
         local randomServer = servers[math.random(1, #servers)]
-        print("Teleporting to server:", randomServer)
-        TeleportService:TeleportToPlaceInstance(PLACE_ID, randomServer, LocalPlayer)
+        print("Teleporting ke server:", randomServer)
+        local ok, err = pcall(function()
+            TeleportService:TeleportToPlaceInstance(PLACE_ID, randomServer, LocalPlayer)
+        end)
+        if not ok then
+            warn("Teleport gagal: "..tostring(err))
+            task.wait(5)
+            serverHop() -- retry kalau gagal
+        end
     else
-        warn("Ga ada server kosong, coba lagi nanti...")
+        warn("Ga ada server kosong/valid, tunggu 30 detik...")
+        task.wait(30)
+        serverHop()
     end
 end
 
 -- main loop
-task.wait(60) -- delay 1 menit setelah server hop biar aman
+task.wait(60) -- delay 1 menit setelah join biar aman
 
 while task.wait(30) do -- cek tiap 30 detik
-    local found = checkMeteor()
-    if found then
-        serverHop()
+    if checkMeteor() then
+        local playerCount = #Players:GetPlayers()
+        local jobId = game.JobId
+        local link = "roblox://placeId=" .. PLACE_ID .. "&gameInstanceId=" .. jobId
+
+        local msg = "☄️ Meteor Shower Found!\n"
+            .."👥 "..playerCount.." Players\n"
+            .."🔗 "..link
+
+        sendWebhook(msg) -- kirim sekali
+
+        task.wait(20)
+        serverHop() -- hop setelah webhook
     end
 end
