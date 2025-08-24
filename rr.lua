@@ -1,57 +1,125 @@
+-- Test webhook dengan pesan yang kamu minta
+
 local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
 
-local LocalPlayer = Players.LocalPlayer
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1409010090517856297/mwsigy2jqmKyqbDp1DAgIrQp_40Ef6n4VUX8iFq0l1fWwzj22Ce2zz8mF9ezTAs5422k" -- ganti pake webhook lu
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1409010090517856297/mwsigy2jqmKyqbDp1DAgIrQp_40Ef6n4VUX8iFq0l1fWwzj22Ce2zz8mF9ezTAs5422k"
 
--- function kirim webhook
-local function sendWebhook(playerCount)
-    local req = http_request or request or syn.request
-    if req then
-        local jobId = game.JobId
-        local PlaceId = game.PlaceId
-        local gameLink = "roblox://placeId=" .. PlaceId .. "&gameInstanceId=" .. jobId
-    
-        local body = {
-            content = "☄️ Meteor Shower Found!\n" .. playerCount .. "/20\n" .. gameLink,
+-- Cari request function
+
+local req = http_request or request or (syn and syn.request) or (fluxus and fluxus.request)
+
+if not req then
+
+    warn("❌ No request function available")
+
+    return
+
+end
+
+print("🔄 Sending test webhook message...")
+
+-- Pesan yang kamu minta
+
+local body = {
+
+    content = "Meteor Shower Found! 14/20 roblox://placeId=129827112113663&gameInstanceId=0f2d6fe3-94dc-407a-81ff-bce58be34563"
+
+}
+
+local success, response = pcall(function()
+
+    return req({
+
+        Url = WEBHOOK_URL,
+
+        Method = "POST",
+
+        Headers = {["Content-Type"] = "application/json"},
+
+        Body = HttpService:JSONEncode(body)
+
+    })
+
+end)
+
+print("\n=== WEBHOOK TEST RESULTS ===")
+
+if success then
+
+    print("✅ Request sent successfully!")
+
+else
+
+    warn("❌ Request failed:", tostring(response))
+
+end
+
+print("=== END TEST ===")
+
+-- Alternative dengan button yang bisa diklik
+
+print("\n🔄 Sending enhanced version with clickable button...")
+
+local enhancedBody = {
+
+    content = "☄️ Meteor Shower Found! ☄️\n👥 Players: 14/20",
+
+    components = {
+
+        {
+
+            type = 1,
+
             components = {
+
                 {
-                    type = 1,
-                    components = {
-                        {
-                            type = 2,
-                            label = "Join Game",
-                            style = 5,
-                            url = gameLink
-                        }
-                    }
+
+                    type = 2,
+
+                    label = "🚀 Join Server",
+
+                    style = 5,
+
+                    url = "roblox://placeId=129827112113663&gameInstanceId=0f2d6fe3-94dc-407a-81ff-bce58be34563"
+
                 }
+
             }
+
         }
-    
-        req({
-            Url = WEBHOOK_URL,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(body)
-        })
-    else
-        warn("No request function available")
+
+    }
+
+}
+
+local success2, response2 = pcall(function()
+
+    return req({
+
+        Url = WEBHOOK_URL,
+
+        Method = "POST",
+
+        Headers = {["Content-Type"] = "application/json"},
+
+        Body = HttpService:JSONEncode(enhancedBody)
+
+    })
+
+end)
+
+if success2 then
+
+    print("✅ Enhanced webhook sent!")
+
+    if response2 and response2.StatusCode then
+
+        print("📊 Enhanced Status:", response2.StatusCode)
+
     end
+
+else
+
+    warn("❌ Enhanced webhook failed:", tostring(response2))
+
 end
-
--- cek meteor
-local function checkMeteor()
-    local boosts = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("MainUI"):WaitForChild("Boosts")
-
-    if boosts:FindFirstChild("Meteor Shower") then
-        local playerCount = #Players:GetPlayers()
-        sendWebhook(playerCount)
-    end
-
-    -- loop lagi setelah delay
-    task.delay(30, checkMeteor)
-end
-
--- mulai loop
-task.delay(5, checkMeteor) -- tunggu 5 detik dulu biar GUI siap
